@@ -83,7 +83,8 @@ recent changes and for `roostr changes`. It is developed and tested on Linux.
 
 ## Status
 
-0.1.0, the first public release. All six commands work and the acceptance suite passes.
+0.2.0, which renames roosty to roostr; [`releases/0.2.0.md`](releases/0.2.0.md) says how to
+upgrade from 0.1.0. All six commands work and the acceptance suite passes.
 The file formats may still change before 1.0; such a change will be in the release notes,
 in [`releases/`](releases/).
 
