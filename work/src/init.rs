@@ -7,7 +7,7 @@ use saphyr::{Scalar, Yaml, YamlEmitter};
 use crate::repository::PROJECT_FILE;
 
 pub(crate) fn create(root: &Path) -> io::Result<bool> {
-    fs::create_dir_all(root.join(".roosty"))?;
+    fs::create_dir_all(root.join(".roostr"))?;
     let mut file = match OpenOptions::new()
         .write(true)
         .create_new(true)

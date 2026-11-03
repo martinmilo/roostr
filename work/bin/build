@@ -10,4 +10,4 @@ case "$host" in
 esac
 
 cargo build --offline --locked --release --target "$target"
-cp "${CARGO_TARGET_DIR:-target}/$target/release/roosty" bin/roosty
+cp "${CARGO_TARGET_DIR:-target}/$target/release/roostr" bin/roostr

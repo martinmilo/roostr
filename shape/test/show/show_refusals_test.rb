@@ -17,22 +17,22 @@ class ShowRefusalsTest < AcceptanceTest
   end
 
   test "a project.yml that does not parse stops show and points at validate" do
-    write_file ".roosty/project.yml", "name: [unclosed\n"
+    write_file ".roostr/project.yml", "name: [unclosed\n"
 
     show "book-workshop"
 
     assert_exit 2
     assert_stderr "project.yml"
-    assert_stderr "roosty validate"
+    assert_stderr "roostr validate"
   end
 
   test "a process record that does not parse cannot be shown and points at validate" do
-    write_file ".roosty/processes/cancel-booking.yml", "name: [unclosed\n"
+    write_file ".roostr/processes/cancel-booking.yml", "name: [unclosed\n"
 
     show "cancel-booking"
 
     assert_exit 2
     assert_stderr "cancel-booking.yml"
-    assert_stderr "roosty validate"
+    assert_stderr "roostr validate"
   end
 end

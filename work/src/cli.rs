@@ -35,9 +35,9 @@ enum Command<'a> {
 }
 
 const USAGE: &str =
-    "Usage: roosty [show <id> | changes [--since <7d|YYYY-MM-DD>] | validate | scan | init]";
+    "Usage: roostr [show <id> | changes [--since <7d|YYYY-MM-DD>] | validate | scan | init]";
 
-const CHANGES_USAGE: &str = "Usage: roosty changes [--since <7d|YYYY-MM-DD>]";
+const CHANGES_USAGE: &str = "Usage: roostr changes [--since <7d|YYYY-MM-DD>]";
 
 pub(crate) fn run(args: &[String]) -> Response {
     let command = match args {
@@ -60,18 +60,18 @@ pub(crate) fn run(args: &[String]) -> Response {
             return Response::output(
                 0,
                 format!(
-                    "{USAGE}\n\n  roosty            Show the project overview\n  roosty show <id>   Show a process\n  roosty changes     Show changes (defaults to --since 7d)\n  roosty validate    Check project records and references\n  roosty scan        Run the scan script and update entrypoints\n  roosty init        Create project metadata and print setup instructions\n"
+                    "{USAGE}\n\n  roostr            Show the project overview\n  roostr show <id>   Show a process\n  roostr changes     Show changes (defaults to --since 7d)\n  roostr validate    Check project records and references\n  roostr scan        Run the scan script and update entrypoints\n  roostr init        Create project metadata and print setup instructions\n"
                 ),
             );
         }
         [command, ..] if command == "show" => {
             return Response::error(
                 2,
-                "Usage: roosty show <id> (exactly one process id is required)",
+                "Usage: roostr show <id> (exactly one process id is required)",
             );
         }
         [command, ..] if matches!(command.as_str(), "validate" | "scan" | "init") => {
-            return Response::error(2, format!("Usage: roosty {command} (no arguments)"));
+            return Response::error(2, format!("Usage: roostr {command} (no arguments)"));
         }
         [command, ..] if command == "changes" => {
             return Response::error(2, CHANGES_USAGE);
@@ -94,7 +94,7 @@ pub(crate) fn run(args: &[String]) -> Response {
     let Some(root) = root else {
         return Response::error(
             2,
-            format!("No {PROJECT_FILE} found; run roosty init to initialise this project."),
+            format!("No {PROJECT_FILE} found; run roostr init to initialise this project."),
         );
     };
     if let Command::Scan = command {
@@ -116,7 +116,7 @@ pub(crate) fn run(args: &[String]) -> Response {
         return Response::error(
             2,
             format!(
-                "Cannot read {PROJECT_FILE}: {}. Run roosty validate for details.",
+                "Cannot read {PROJECT_FILE}: {}. Run roostr validate for details.",
                 repository.project.problems.join("; ")
             ),
         );
@@ -131,7 +131,7 @@ pub(crate) fn run(args: &[String]) -> Response {
                 return match command {
                     Command::Changes(_) => Response::error(
                         2,
-                        "This is not a Git repository; roosty changes needs Git history.",
+                        "This is not a Git repository; roostr changes needs Git history.",
                     ),
                     _ => Response::output(0, render::overview(project, &repository, None, &[])),
                 };
@@ -171,7 +171,7 @@ pub(crate) fn run(args: &[String]) -> Response {
                 return Response::error(
                     2,
                     format!(
-                        "Cannot read {}: {}. Run roosty validate for details.",
+                        "Cannot read {}: {}. Run roostr validate for details.",
                         record.file,
                         record.parsed.problems.join("; ")
                     ),

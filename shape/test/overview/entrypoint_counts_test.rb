@@ -9,7 +9,7 @@ class EntrypointCountsTest < AcceptanceTest
   end
 
   test "a kind the scan covers but found nowhere reads none found, never 0" do
-    write_file ".roosty/entrypoints.tsv", fixture("entrypoints/covers-schedule-too.tsv") # same rows, header also covers schedule
+    write_file ".roostr/entrypoints.tsv", fixture("entrypoints/covers-schedule-too.tsv") # same rows, header also covers schedule
 
     overview
 
@@ -25,7 +25,7 @@ class EntrypointCountsTest < AcceptanceTest
   end
 
   test "other is left out when every entrypoint has an area" do
-    write_file ".roosty/entrypoints.tsv", fixture("entrypoints/all-areas.tsv") # the two mails now belong to Notifications
+    write_file ".roostr/entrypoints.tsv", fixture("entrypoints/all-areas.tsv") # the two mails now belong to Notifications
 
     overview
 
@@ -34,7 +34,7 @@ class EntrypointCountsTest < AcceptanceTest
   end
 
   test "the coverage line is left out when every kind is covered and found" do
-    write_file ".roosty/entrypoints.tsv", fixture("entrypoints/all-kinds.tsv") # covers all six kinds, one schedule, event and cli entrypoint added
+    write_file ".roostr/entrypoints.tsv", fixture("entrypoints/all-kinds.tsv") # covers all six kinds, one schedule, event and cli entrypoint added
 
     overview
 
@@ -44,7 +44,7 @@ class EntrypointCountsTest < AcceptanceTest
   end
 
   test "with no entrypoints.tsv the FUNCTIONALITY heading reads not scanned yet and no count is given" do
-    delete_file ".roosty/entrypoints.tsv"
+    delete_file ".roostr/entrypoints.tsv"
 
     overview
 

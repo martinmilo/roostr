@@ -31,14 +31,14 @@ class ChangesCannotRunTest < AcceptanceTest
     assert_nothing_written
   end
 
-  test "without .roosty/project.yml, changes says to run roosty init" do
+  test "without .roostr/project.yml, changes says to run roostr init" do
     write_file "README.md", "# Atelier\n"
     start_repository
 
     changes
 
     assert_exit 2
-    assert_stderr "roosty init"
+    assert_stderr "roostr init"
     assert_nothing_written
   end
 end

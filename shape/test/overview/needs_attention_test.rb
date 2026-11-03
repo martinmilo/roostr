@@ -15,7 +15,7 @@ class NeedsAttentionTest < AcceptanceTest
 
   test "a record committed in the same commit as a file it lists is up to date and is not listed" do
     edit_file "app/jobs/booking_reminder_job.rb"
-    edit_file ".roosty/processes/remind-attendees.yml"
+    edit_file ".roostr/processes/remind-attendees.yml"
     commit "Send the reminder two days ahead", on: "2026-10-06"
 
     overview
@@ -27,7 +27,7 @@ class NeedsAttentionTest < AcceptanceTest
   test "once a record is committed after the file, here with a new checked date, the process is no longer listed" do
     edit_file "app/jobs/booking_reminder_job.rb"
     commit "Send the reminder two days ahead", on: "2026-10-06"
-    write_file ".roosty/processes/remind-attendees.yml", fixture("processes/remind-attendees-checked.yml") # the same record with checked: 2026-10-08
+    write_file ".roostr/processes/remind-attendees.yml", fixture("processes/remind-attendees-checked.yml") # the same record with checked: 2026-10-08
     commit "The reminder record still holds", on: "2026-10-08"
 
     overview
@@ -37,7 +37,7 @@ class NeedsAttentionTest < AcceptanceTest
   end
 
   test "newer means later in history, not a later date: a file committed after its record with the very same commit date is listed" do
-    edit_file ".roosty/processes/remind-attendees.yml"
+    edit_file ".roostr/processes/remind-attendees.yml"
     commit "Describe the reminder as it works now", on: "2026-10-06"
     edit_file "app/jobs/booking_reminder_job.rb"
     commit "Send the reminder two days ahead", on: "2026-10-06"
@@ -52,7 +52,7 @@ class NeedsAttentionTest < AcceptanceTest
     edit_file "app/jobs/booking_reminder_job.rb"
     commit "Send the reminder two days ahead", on: "2026-10-05"
     switch_to "main"
-    edit_file ".roosty/processes/remind-attendees.yml"
+    edit_file ".roostr/processes/remind-attendees.yml"
     commit "Describe the reminder as it works now", on: "2026-10-06"
     merge "longer-reminders", on: "2026-10-07"
 
@@ -89,7 +89,7 @@ class NeedsAttentionTest < AcceptanceTest
   end
 
   test "a record that has never been committed is skipped, while a committed record that lists the same changed file is named" do
-    write_file ".roosty/processes/refund-booking.yml", fixture("processes/refund-booking.yml") # lists app/models/booking.rb; never committed
+    write_file ".roostr/processes/refund-booking.yml", fixture("processes/refund-booking.yml") # lists app/models/booking.rb; never committed
     edit_file "app/models/booking.rb"
 
     overview
@@ -101,7 +101,7 @@ class NeedsAttentionTest < AcceptanceTest
   test "a record with an edit of its own that is not committed yet, here a new checked date, counts as updated and is not listed" do
     edit_file "app/jobs/booking_reminder_job.rb"
     commit "Send the reminder two days ahead", on: "2026-10-06"
-    write_file ".roosty/processes/remind-attendees.yml", fixture("processes/remind-attendees-checked.yml") # the same record with checked: 2026-10-08
+    write_file ".roostr/processes/remind-attendees.yml", fixture("processes/remind-attendees-checked.yml") # the same record with checked: 2026-10-08
 
     overview
 
@@ -110,11 +110,11 @@ class NeedsAttentionTest < AcceptanceTest
   end
 
   test "a record that cannot be read is listed before the processes that need attention" do
-    write_file ".roosty/processes/refund-booking.yml", "name: [unclosed\n"
+    write_file ".roostr/processes/refund-booking.yml", "name: [unclosed\n"
     edit_file "app/jobs/booking_reminder_job.rb"
 
     overview
 
-    assert_stdout(/NEEDS ATTENTION\n.*refund-booking\.yml.*run roosty validate\n  remind-attendees\s+app\/jobs\/booking_reminder_job\.rb changed since/)
+    assert_stdout(/NEEDS ATTENTION\n.*refund-booking\.yml.*run roostr validate\n  remind-attendees\s+app\/jobs\/booking_reminder_job\.rb changed since/)
   end
 end

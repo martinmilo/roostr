@@ -1,4 +1,4 @@
-# Record 1: `roosty`, `roosty show <id>`, `roosty validate`
+# Record 1: `roostr`, `roostr show <id>`, `roostr validate`
 
 Date: 2026-10-10. First spec record of the project. Supersedes the command proposal
 discussed on 2026-10-09 (init, new, list, show, validate, status, review, scan, context,
@@ -11,10 +11,10 @@ real project comes back; scenarios 1 and 14, which freeze whole screens, wait fo
 ## The problem this record serves
 
 Coming back to a project after a week, the owner has lost the picture: what it does, what it
-exposes, how to run and deploy it, how to try a feature, what changed. Roosty keeps that
-picture in committed files under `.roosty/` and prints it instantly. Agents read it through
+exposes, how to run and deploy it, how to try a feature, what changed. Roostr keeps that
+picture in committed files under `.roostr/` and prints it instantly. Agents read it through
 one line in `AGENTS.md` that tells them to run the same two commands, and agents do the
-upkeep. Roosty contains no model and runs no hooks.
+upkeep. Roostr contains no model and runs no hooks.
 
 This record covers the three read commands. They read the files, never Git, and never run
 repository code. They write nothing.
@@ -23,14 +23,14 @@ repository code. They write nothing.
 
 ### Names and files
 
-- Command `roosty`, folder `.roosty/`. The folder's marker is `.roosty/project.yml`.
-- `.roosty/project.yml`: `name`, `stack` (one line), `operations` (map of operation name to
+- Command `roostr`, folder `.roostr/`. The folder's marker is `.roostr/project.yml`.
+- `.roostr/project.yml`: `name`, `stack` (one line), `operations` (map of operation name to
   command, in file order), `environments` (map of environment name to where it runs, in
   file order). `name` is required; the rest are optional.
-- `.roosty/entrypoints.tsv`: written by `scan` (record 2), committed. First line
+- `.roostr/entrypoints.tsv`: written by `scan` (record 2), committed. First line
   `# covers: <kinds separated by spaces>`, then one line per entrypoint, three tab-separated
   columns `kind`, `name`, `file`, sorted by line. The header is not part of the sort.
-- `.roosty/processes/<id>.yml`: one file per process. **The file name is the id**; there is
+- `.roostr/processes/<id>.yml`: one file per process. **The file name is the id**; there is
   no `id` key. Keys: `name`, `description`, `group`, `entrypoints` (list), `files` (list),
   `try` (free text, never run), `outcomes`, `why`. Required: `name`, `description`.
   Everything else is optional and is validated when present. (The direction document marked
@@ -39,7 +39,7 @@ repository code. They write nothing.
 - Entrypoint kinds are a closed list: `http`, `job`, `mail`, `schedule`, `event`, `cli`.
 - A process refers to an entrypoint as the string `<kind> <name>`, exactly the first two
   columns of its line in `entrypoints.tsv` joined by one space, for example
-  `http POST /bookings` or `job BookingReminderJob`. Roosty treats the name as opaque.
+  `http POST /bookings` or `job BookingReminderJob`. Roostr treats the name as opaque.
 - `outcomes` is a map from outcome name to `when` (the condition) and `then` (what happens),
   both one line:
 
@@ -57,19 +57,19 @@ repository code. They write nothing.
 
 - Plain text, 80 columns, no colour, no `--json`, no width detection.
 - Exit 0 success, 1 findings or refusal (including an id that does not exist), 2 could not
-  run (unknown command, missing argument, no `.roosty/project.yml`).
-- Without `.roosty/project.yml` every command exits 2 and says to run `roosty init`.
+  run (unknown command, missing argument, no `.roostr/project.yml`).
+- Without `.roostr/project.yml` every command exits 2 and says to run `roostr init`.
 - A section with nothing in it is left out. Absence is never shown as zero: a kind the scan
   does not cover reads `not scanned`, and a project that has never been scanned reads
   `not scanned yet`.
 - None of the three commands writes a file, ever.
 - A process record that cannot be read (bad YAML, or missing a required key) never stops
-  the overview: `roosty` prints everything that reads, lists the file under NEEDS ATTENTION
-  with `run roosty validate`, and exits 0. `roosty show` on that record exits 2 naming the
-  file and pointing at `roosty validate`. `roosty validate` reports it as a finding and
+  the overview: `roostr` prints everything that reads, lists the file under NEEDS ATTENTION
+  with `run roostr validate`, and exits 0. `roostr show` on that record exits 2 naming the
+  file and pointing at `roostr validate`. `roostr validate` reports it as a finding and
   keeps checking the other records.
 
-### The overview, `roosty`
+### The overview, `roostr`
 
 Sections in this order, separated by one blank line. LAST 7 DAYS and the `!` marker on
 process lines belong to record 3 and are never shown in this record. NEEDS ATTENTION appears
@@ -93,7 +93,7 @@ WORK WITH THIS PROJECT
   <environment>   <where it runs>
 
 NEEDS ATTENTION
-  <file>   cannot be read, run roosty validate
+  <file>   cannot be read, run roostr validate
 ```
 
 Rules:
@@ -115,9 +115,9 @@ Rules:
   The label column is as wide as the longest label plus four spaces. Left out when both are
   empty.
 - NEEDS ATTENTION lists each process file that cannot be read, one per line, ending in
-  `run roosty validate`. Left out when every record reads.
+  `run roostr validate`. Left out when every record reads.
 
-### One process, `roosty show <id>`
+### One process, `roostr show <id>`
 
 ```
 <id>   <name>                                                <Group, right-aligned>
@@ -146,7 +146,7 @@ Rules:
 - Outcome names are padded to the longest plus three spaces.
 - An id that does not exist: exit 1, stderr names the id. No id: exit 2.
 
-### `roosty validate`
+### `roostr validate`
 
 Checks, in this order, and reports every finding as one line `<file>: <problem>` on stdout:
 
@@ -158,7 +158,7 @@ Checks, in this order, and reports every finding as one line `<file>: <problem>`
 5. Every entry in `entrypoints` is `<kind> <name>` with a kind from the closed list and
    appears in `entrypoints.tsv`. When a record lists entrypoints and `entrypoints.tsv` does
    not exist, that is one finding for the whole run: the entrypoints cannot be checked, run
-   `roosty scan`.
+   `roostr scan`.
 
 Exit 1 with one or more findings, exit 0 with the line `No problems found.` A broken record
 does not stop the other checks.
@@ -197,7 +197,7 @@ one rule.
 
 ### The overview
 
-1. In Atelier, `roosty` prints the overview exactly as laid out, and writes nothing.
+1. In Atelier, `roostr` prints the overview exactly as laid out, and writes nothing.
    **Waits for the trial.**
 2. The overview says how many entrypoints no process describes: 2 of 7.
 3. A kind the scan covers but found nothing of is shown as 0.
@@ -213,23 +213,23 @@ one rule.
 11. In a folder that is not a Git repository, with every record readable, LAST 7 DAYS and
     NEEDS ATTENTION are left out.
 12. A process record that does not parse does not stop the overview: the rest is printed,
-    the file is listed under NEEDS ATTENTION with "run roosty validate", exit 0. (Changed on
+    the file is listed under NEEDS ATTENTION with "run roostr validate", exit 0. (Changed on
     confirmation: the draft made the overview exit 2.)
-13. Without `.roosty/project.yml`, `roosty` exits 2, says to run `roosty init`, and writes
+13. Without `.roostr/project.yml`, `roostr` exits 2, says to run `roostr init`, and writes
     nothing.
 
 ### One process
 
-14. `roosty show book-workshop` prints the record exactly as laid out, with two entry lines,
+14. `roostr show book-workshop` prints the record exactly as laid out, with two entry lines,
     two code lines, the try line, outcomes and why. **Waits for the trial.**
 15. A process with no try, no outcomes and no why leaves all three out.
 16. A process without a group has a heading of id and name only.
 17. An entrypoint missing from `entrypoints.tsv` is shown as "not in entrypoints.tsv".
 18. A long description is wrapped at 80 columns.
 19. An id that does not exist exits 1 and names the id.
-20. `roosty show` with no id exits 2.
-33. `roosty show` on a record that does not parse exits 2, names the file and points at
-    `roosty validate`. (Added on confirmation, the other half of 12.)
+20. `roostr show` with no id exits 2.
+33. `roostr show` on a record that does not parse exits 2, names the file and points at
+    `roostr validate`. (Added on confirmation, the other half of 12.)
 
 ### Validate
 
@@ -241,7 +241,7 @@ one rule.
 26. A record that does not parse is a finding, and the other records are still checked.
 27. A record without a description is a finding.
 28. Records that list entrypoints while `entrypoints.tsv` is missing give one finding that
-    says to run `roosty scan`.
+    says to run `roostr scan`.
 29. An `entrypoints.tsv` row with an unknown kind is a finding.
 30. Two broken records give two findings in one run.
 31. Validate writes nothing, whether or not it finds problems.

@@ -1,9 +1,9 @@
 class ChangesNothingToCompareTest < AcceptanceTest
   test "when no entrypoints.tsv was committed before the period started, entrypoints are not compared: none is listed as added and the count line says not compared" do
     workspace "atelier"
-    delete_file ".roosty/entrypoints.tsv"
+    delete_file ".roostr/entrypoints.tsv"
     start_repository # committed on 2026-01-15 without entrypoints.tsv
-    write_file ".roosty/entrypoints.tsv", fixture("entrypoints/all-areas.tsv") # 7 entrypoints
+    write_file ".roostr/entrypoints.tsv", fixture("entrypoints/all-areas.tsv") # 7 entrypoints
     commit "Scan the entrypoints for the first time", on: "2026-10-06"
 
     changes

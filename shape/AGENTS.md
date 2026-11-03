@@ -80,9 +80,9 @@ deletes `QUESTIONS.md`, so that the worker starts its next session clean.
 ## Where things are
 
 `PROGRAM` at the top of `test/test_helper.rb` names the executable the tests run,
-`bin/roosty` in the work folder; it is the same path the worker was told to build.
-roosty's own commands (`overview`, `show`, `changes`, `validate`, `scan`, `init`) and the
-fixtures built from Atelier are in `test/support/roosty.rb`, which its header explains;
+`bin/roostr` in the work folder; it is the same path the worker was told to build.
+roostr's own commands (`overview`, `show`, `changes`, `validate`, `scan`, `init`) and the
+fixtures built from Atelier are in `test/support/roostr.rb`, which its header explains;
 grow it as commands are added. The other five modules in `test/support/` are the test kit:
 they depend on each other and stay together.
 

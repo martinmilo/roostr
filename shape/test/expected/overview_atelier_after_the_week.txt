@@ -29,7 +29,7 @@ ENVIRONMENTS
 
 LAST 7 DAYS
   entrypoints: 2 added, 1 removed   processes: 3 changed
-  run roosty changes to see them
+  run roostr changes to see them
 
 NEEDS ATTENTION
   book-workshop      app/models/booking.rb changed since this record was updated

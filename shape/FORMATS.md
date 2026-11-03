@@ -1,11 +1,11 @@
-# Roosty file formats
+# Roostr file formats
 
-Everything roosty reads lives under `.roosty/` in the repository root. The marker of an
-initialised project is `.roosty/project.yml`. All YAML files are plain YAML 1.2 mappings.
+Everything roostr reads lives under `.roostr/` in the repository root. The marker of an
+initialised project is `.roostr/project.yml`. All YAML files are plain YAML 1.2 mappings.
 Paths are relative to the repository root. The examples below describe an imaginary
 invoicing app called Ledgerline.
 
-## `.roosty/project.yml`
+## `.roostr/project.yml`
 
 | Key | Required | Value |
 |---|---|---|
@@ -36,7 +36,7 @@ environments:
   production: ledgerline.example (Fly.io)
 ```
 
-## `.roosty/processes/<id>.yml`
+## `.roostr/processes/<id>.yml`
 
 One file per process. **The file name without `.yml` is the process id.** There is no `id`
 key. Ids are referred to on the command line as written in the file name.
@@ -48,7 +48,7 @@ key. Ids are referred to on the command line as written in the file name.
 | `group` | no | the area the process belongs to, one line; see "Areas and groups" below |
 | `entrypoints` | no | a list of entrypoint references, each the string `<kind> <name>`; see "What belongs in `entrypoints`" below |
 | `files` | no | a list of items, each either a path string or a map with `path` and an optional `note` |
-| `try` | no | free text, possibly several lines, describing how to exercise the process by hand. It is printed exactly as written, so indentation and spacing in a snippet are kept. roosty never runs it |
+| `try` | no | free text, possibly several lines, describing how to exercise the process by hand. It is printed exactly as written, so indentation and spacing in a snippet are kept. roostr never runs it |
 | `outcomes` | no | a map of outcome name to a map with `when` (the condition) and `then` (what happens), each one line |
 | `why` | no | a list of sentences or short paragraphs |
 | `checked` | no | a date written `YYYY-MM-DD`: the day someone last compared the record with the code and found that it still holds |
@@ -83,7 +83,7 @@ checked: 2026-09-30
 ```
 
 `checked` is for the record that is still right after the code under it changed. Nothing
-else in the record needs editing then, and setting the date is the edit that says so. Roosty
+else in the record needs editing then, and setting the date is the edit that says so. Roostr
 does not compare the date with anything: what counts is that the record was changed, and
 later committed, after the code was.
 
@@ -106,16 +106,16 @@ process sit under its area, write the group as the scan writes the area.
 Every entrypoint the behaviour starts from or runs through: the request, command or schedule
 that starts it, the jobs it enqueues, the mails it sends, the events it emits. An
 entrypoint reference is the first two columns of an `entrypoints.tsv` row joined by one
-space. The kind is one of the closed list below; the name is opaque to roosty. The overview
+space. The kind is one of the closed list below; the name is opaque to roostr. The overview
 counts an entrypoint as described when at least one process lists it, so a job or a mail
 that no process lists shows up as not described even when the process that sends it is.
 
-## `.roosty/scan`
+## `.roostr/scan`
 
 The project's own script that lists its entrypoints: an executable file, written in any
-language. `roosty scan` is the only command that runs it, and no other command runs anything
-from the repository. Roosty starts the file directly, with the repository root (the folder
-`.roosty/` is in) as its working directory, reads its stdout, and passes whatever it writes
+language. `roostr scan` is the only command that runs it, and no other command runs anything
+from the repository. Roostr starts the file directly, with the repository root (the folder
+`.roostr/` is in) as its working directory, reads its stdout, and passes whatever it writes
 to stderr on to its own stderr. Output on stderr is never a problem by itself.
 
 The script prints on stdout:
@@ -133,7 +133,7 @@ http	GET /invoices	billing/views.py	Invoices
 mail	ReminderMail	billing/mail.py
 ```
 
-`roosty scan` refuses the result, and leaves `entrypoints.tsv` exactly as it was (or absent),
+`roostr scan` refuses the result, and leaves `entrypoints.tsv` exactly as it was (or absent),
 when the script exits with anything but 0, or when its output is malformed:
 
 - the first line is not a `# covers:` line;
@@ -147,11 +147,11 @@ Every problem in the output is reported, each naming the line of the output it i
 counted from 1: `line 3: ...`. For two rows with the same kind and name, that is the line of
 the second, and the entrypoint is named as `<kind> <name>`.
 
-Otherwise roosty writes `.roosty/entrypoints.tsv` in the format below, and nothing else.
+Otherwise roostr writes `.roostr/entrypoints.tsv` in the format below, and nothing else.
 
-## `.roosty/entrypoints.tsv`
+## `.roostr/entrypoints.tsv`
 
-Written by `roosty scan`, committed. It may be absent in a project that has never been
+Written by `roostr scan`, committed. It may be absent in a project that has never been
 scanned.
 
 - The first line is `# covers: ` followed by the kinds the scan handles, separated by
@@ -180,7 +180,7 @@ schedule	remind_overdue	billing/tasks.py	Collections
 
 A closed list, in this order: `http`, `job`, `mail`, `schedule`, `event`, `cli`.
 
-## What `roosty validate` checks
+## What `roostr validate` checks
 
 Every finding names the file. When it is about a key, it names the key as a dotted path from
 the top of the file, with no trailing dot: `watch_out`, `outcomes.refunded`,
@@ -201,7 +201,7 @@ square brackets, and never counted from 0.
   findings, and the finding gives the form `YYYY-MM-DD`.
 - Every entrypoint reference in a record uses a kind from the closed list and matches a row
   of `entrypoints.tsv`. When records list entrypoints and `entrypoints.tsv` is missing, there
-  is one finding, which says to run `roosty scan`.
+  is one finding, which says to run `roostr scan`.
 - No record lists the same entrypoint twice. The finding names the repeat by its position
   (`entrypoints.3`) and gives the entrypoint. Two different records may list the same
   entrypoint; that is not a finding.
@@ -217,30 +217,30 @@ With findings, `validate` exits 1 and lists them on stdout; with none, it prints
 |---|---|
 | 0 | success |
 | 1 | findings, or a refusal: `validate` found problems, the id given to `show` does not exist, or `scan` refused what its script did (a non-zero exit, malformed output) |
-| 2 | could not run: unknown command, missing argument, no `.roosty/project.yml`, `show` asked for a record that cannot be read, `scan` found no `.roosty/scan` or one that is not executable, or `changes` was run outside a Git repository or with a `--since` value that is neither a number of days (`7d`) nor a date (`2026-10-03`) |
+| 2 | could not run: unknown command, missing argument, no `.roostr/project.yml`, `show` asked for a record that cannot be read, `scan` found no `.roostr/scan` or one that is not executable, or `changes` was run outside a Git repository or with a `--since` value that is neither a number of days (`7d`) nor a date (`2026-10-03`) |
 
 Normal output goes to stdout. Reasons for exit 1 and 2 go to stderr, except `validate`
 findings, which are the command's output and go to stdout.
 
-`roosty init` is the one command that runs without `.roosty/project.yml`: it creates it. Run
+`roostr init` is the one command that runs without `.roostr/project.yml`: it creates it. Run
 where the file already exists, it leaves the file alone and still exits 0.
 
-`roosty changes` in a Git repository exits 0 also when nothing changed and when the
+`roostr changes` in a Git repository exits 0 also when nothing changed and when the
 repository has no commits yet.
 
-## What roosty reads from Git
+## What roostr reads from Git
 
-The overview and `roosty changes` read the Git repository the project is in: the commits
+The overview and `roostr changes` read the Git repository the project is in: the commits
 reachable from `HEAD`, the files each touched, and what is uncommitted in the working tree.
 They only read. No other command reads Git.
 
 - A commit belongs to a **period** by its commit date. A period starts at 00:00:00 on its
-  first day and runs until now. A day is a day in the local time zone, the one roosty runs
+  first day and runs until now. A day is a day in the local time zone, the one roostr runs
   under (`TZ`).
 - `--since <when>` names the first day of a period: `2026-10-03` is that day, and `7d` is
   the day seven days before today. `--since=<when>` is the same. Without `--since`,
-  `roosty changes` means `7d`.
-- The entrypoints of "then" are `.roosty/entrypoints.tsv` as it was in the last commit made
+  `roostr changes` means `7d`.
+- The entrypoints of "then" are `.roostr/entrypoints.tsv` as it was in the last commit made
   before the period started. The entrypoints of "now" are the file in the working tree,
   committed or not. When either is missing, entrypoints are not compared.
 
@@ -259,9 +259,9 @@ uncommitted changes.
 
 Two limits:
 
-- Any change to a record counts as an update. roosty does not know whether the change dealt
+- Any change to a record counts as an update. roostr does not know whether the change dealt
   with the code change.
-- roosty does not report whether `entrypoints.tsv` is current. Running `roosty scan` is the
+- roostr does not report whether `entrypoints.tsv` is current. Running `roostr scan` is the
   check.
 
 ## Environment
@@ -269,4 +269,4 @@ Two limits:
 | Variable | Value | Meaning |
 |---|---|---|
 | `TZ` | a time zone, as the system reads it | the standard variable. It decides where a day starts. The tests set it to `UTC`. |
-| `ROOSTY_TODAY` | a date, `YYYY-MM-DD` | roosty takes this as today's date instead of the machine's. It decides where the last 7 days and `--since 7d` start. |
+| `ROOSTR_TODAY` | a date, `YYYY-MM-DD` | roostr takes this as today's date instead of the machine's. It decides where the last 7 days and `--since 7d` start. |

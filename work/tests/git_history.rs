@@ -18,7 +18,7 @@ impl Project {
     fn new(subdirectory: &str) -> Self {
         static NEXT: AtomicU64 = AtomicU64::new(0);
         let root = std::env::temp_dir().join(format!(
-            "roosty-git-{}-{}",
+            "roostr-git-{}-{}",
             std::process::id(),
             NEXT.fetch_add(1, Ordering::Relaxed)
         ));
@@ -27,15 +27,15 @@ impl Project {
         fs::create_dir_all(&directory).unwrap();
         let project = Self { root, directory };
         project.git(&["init", "-q"]);
-        project.git(&["config", "user.name", "Roosty test"]);
+        project.git(&["config", "user.name", "Roostr test"]);
         project.git(&["config", "user.email", "test@example.invalid"]);
-        project.write(".roosty/project.yml", "name: Garden\n");
+        project.write(".roostr/project.yml", "name: Garden\n");
         project.write(
-            ".roosty/entrypoints.tsv",
+            ".roostr/entrypoints.tsv",
             "# covers: cli\ncli\tgrow\tsrc/grow.rs\n",
         );
         project.write(
-            ".roosty/processes/grow.yml",
+            ".roostr/processes/grow.yml",
             "name: Grow\ndescription: Grow a garden.\nfiles:\n  - src/grow.rs\n",
         );
         project.write("src/grow.rs", "initial\n");
@@ -74,11 +74,11 @@ impl Project {
         );
     }
 
-    fn roosty(&self, cwd: &Path, args: &[&str], timezone: &str) -> String {
-        let output = Command::new(env!("CARGO_BIN_EXE_roosty"))
+    fn roostr(&self, cwd: &Path, args: &[&str], timezone: &str) -> String {
+        let output = Command::new(env!("CARGO_BIN_EXE_roostr"))
             .current_dir(cwd)
             .args(args)
-            .env("ROOSTY_TODAY", "2026-10-10")
+            .env("ROOSTR_TODAY", "2026-10-10")
             .env("TZ", timezone)
             .env("GIT_CONFIG_NOSYSTEM", "1")
             .env("GIT_CONFIG_GLOBAL", "/dev/null")
@@ -93,7 +93,7 @@ impl Project {
     }
 
     fn changes(&self, timezone: &str) -> String {
-        self.roosty(
+        self.roostr(
             &self.directory,
             &["changes", "--since", "2026-10-03"],
             timezone,
@@ -125,7 +125,7 @@ fn baseline_with_equal_commit_dates_uses_the_later_commit_in_history() {
     let project = Project::new("");
     project.commit("Initial garden", "2026-09-01T00:00:00Z");
     project.write(
-        ".roosty/entrypoints.tsv",
+        ".roostr/entrypoints.tsv",
         "# covers: cli\ncli\tgrow\tsrc/grow.rs\ncli\tprune\tsrc/grow.rs\n",
     );
     project.commit("Add pruning", "2026-09-01T00:00:00Z");
@@ -143,7 +143,7 @@ fn nested_projects_keep_literal_paths_and_git_reads_do_not_run_helpers_or_update
     let filename = "src/庭 [x] code.rs";
     project.write(filename, "initial\n");
     project.write(
-        ".roosty/processes/grow.yml",
+        ".roostr/processes/grow.yml",
         &format!("name: Grow\ndescription: Grow a garden.\nfiles:\n  - '{filename}'\n"),
     );
     project.commit("Initial garden", "2026-09-01T00:00:00Z");
@@ -160,13 +160,13 @@ fn nested_projects_keep_literal_paths_and_git_reads_do_not_run_helpers_or_update
     project.git(&["config", "core.fsmonitor", helper.to_str().unwrap()]);
     project.git(&["config", "diff.external", helper.to_str().unwrap()]);
     let index = fs::read(project.root.join(".git/index")).unwrap();
-    let output = project.roosty(&project.directory.join("src"), &["changes"], "UTC");
+    let output = project.roostr(&project.directory.join("src"), &["changes"], "UTC");
     assert!(output.contains("Water the garden"), "{output}");
     assert!(
         output.contains("entrypoints: 0 added, 0 removed   processes: 1 changed"),
         "{output}"
     );
-    let overview = project.roosty(&project.directory, &[], "UTC");
+    let overview = project.roostr(&project.directory, &[], "UTC");
     assert!(
         overview.contains(&format!("{filename} changed since")),
         "{overview}"

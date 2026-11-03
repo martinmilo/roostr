@@ -6,8 +6,8 @@ use crate::entrypoints::Inventory;
 use crate::model::{Parsed, Process, Project};
 use crate::parse;
 
-pub(crate) const PROJECT_FILE: &str = ".roosty/project.yml";
-pub(crate) const ENTRYPOINTS_FILE: &str = ".roosty/entrypoints.tsv";
+pub(crate) const PROJECT_FILE: &str = ".roostr/project.yml";
+pub(crate) const ENTRYPOINTS_FILE: &str = ".roostr/entrypoints.tsv";
 
 #[derive(Debug)]
 pub(crate) struct ProcessRecord {
@@ -50,7 +50,7 @@ impl Repository {
             }
         };
         let mut processes = Vec::new();
-        match fs::read_dir(root.join(".roosty/processes")) {
+        match fs::read_dir(root.join(".roostr/processes")) {
             Ok(entries) => {
                 for entry in entries {
                     match entry {
@@ -63,24 +63,24 @@ impl Repository {
                             }
                             let Some(id) = path.file_stem().and_then(|id| id.to_str()) else {
                                 problems.push(
-                                    ".roosty/processes: process filename is not UTF-8".into(),
+                                    ".roostr/processes: process filename is not UTF-8".into(),
                                 );
                                 continue;
                             };
                             processes.push(ProcessRecord {
                                 id: id.to_owned(),
-                                file: format!(".roosty/processes/{id}.yml"),
+                                file: format!(".roostr/processes/{id}.yml"),
                                 parsed: read_yaml(&path, parse::process),
                             });
                         }
                         Err(error) => problems.push(format!(
-                            ".roosty/processes: cannot read directory entry: {error}"
+                            ".roostr/processes: cannot read directory entry: {error}"
                         )),
                     }
                 }
             }
             Err(error) if error.kind() == io::ErrorKind::NotFound => {}
-            Err(error) => problems.push(format!(".roosty/processes: cannot read: {error}")),
+            Err(error) => problems.push(format!(".roostr/processes: cannot read: {error}")),
         }
         processes.sort_by(|a, b| a.id.cmp(&b.id));
         Self {
@@ -179,7 +179,7 @@ impl Repository {
                 .any(|problem| problem.starts_with(ENTRYPOINTS_FILE))
         {
             problems.push(format!(
-                "{ENTRYPOINTS_FILE} is missing; run roosty scan to check process entrypoints"
+                "{ENTRYPOINTS_FILE} is missing; run roostr scan to check process entrypoints"
             ));
         }
         problems

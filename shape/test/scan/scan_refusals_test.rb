@@ -101,12 +101,12 @@ class ScanRefusalsTest < AcceptanceTest
   end
 
   test "a refused first scan creates no entrypoints.tsv" do
-    delete_file ".roosty/entrypoints.tsv"
+    delete_file ".roostr/entrypoints.tsv"
     scan_prints "# covers: http\nhttp\tGET /workshops\n" # a row of two columns
 
     scan
 
     assert_exit 1
-    refute_file ".roosty/entrypoints.tsv"
+    refute_file ".roostr/entrypoints.tsv"
   end
 end

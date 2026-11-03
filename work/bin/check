@@ -20,5 +20,5 @@ run() {
 run cargo fmt --all --check
 run cargo clippy --workspace --all-targets --locked -- -D warnings
 run cargo deny --workspace check
-# No cargo test: roosty's tests are Minitest in ../shape, run through bin/verify and owned by the shape agent.
+# No cargo test: roostr's tests are Minitest in ../shape, run through bin/verify and owned by the shape agent.
 echo "==> clean"

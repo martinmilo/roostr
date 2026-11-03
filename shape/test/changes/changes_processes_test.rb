@@ -2,7 +2,7 @@ class ChangesProcessesTest < AcceptanceTest
   def setup = atelier_under_git # committed once on 2026-01-15; booking.rb is listed by book-workshop and cancel-booking, booking_reminder_job.rb by remind-attendees; today is 2026-10-10
 
   test "a process whose record was committed in the period is listed with the subject of that commit" do
-    edit_file ".roosty/processes/remind-attendees.yml"
+    edit_file ".roostr/processes/remind-attendees.yml"
     commit "Describe the reminder as it works now", on: "2026-10-06"
 
     changes
@@ -25,7 +25,7 @@ class ChangesProcessesTest < AcceptanceTest
 
   test "a commit that touched both a record and a file it lists is given once under that process" do
     edit_file "app/jobs/booking_reminder_job.rb"
-    edit_file ".roosty/processes/remind-attendees.yml"
+    edit_file ".roostr/processes/remind-attendees.yml"
     commit "Send the reminder two days ahead", on: "2026-10-06"
 
     changes
@@ -38,7 +38,7 @@ class ChangesProcessesTest < AcceptanceTest
     commit "Send the reminder two days ahead", on: "2026-10-05"
     edit_file "app/jobs/booking_reminder_job.rb"
     commit "Skip the reminder for cancelled bookings", on: "2026-10-06"
-    edit_file ".roosty/processes/remind-attendees.yml"
+    edit_file ".roostr/processes/remind-attendees.yml"
     commit "Describe the reminder as it works now", on: "2026-10-07"
 
     changes

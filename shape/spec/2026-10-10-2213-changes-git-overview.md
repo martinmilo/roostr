@@ -1,4 +1,4 @@
-# Record 3: `roosty changes`, the two Git-based sections of the overview, and `checked`
+# Record 3: `roostr changes`, the two Git-based sections of the overview, and `checked`
 
 Date: 2026-10-10 22:13. Adds one command, two overview sections and one record key to
 records 1 to 2b, which all stand. Supersedes, in record 2b
@@ -30,22 +30,22 @@ decisions:
 ## The problem this record serves
 
 Record 1 named "what changed" as part of the picture the owner has lost after a week away.
-Until now roosty read only the files. This record lets it read Git as well, for two things:
+Until now roostr read only the files. This record lets it read Git as well, for two things:
 what changed in a period, and where a process record has probably fallen behind the code.
-Roosty still writes nothing and runs no repository code for either.
+Roostr still writes nothing and runs no repository code for either.
 
 ## Decided
 
-### The clock handle: `ROOSTY_TODAY`
+### The clock handle: `ROOSTR_TODAY`
 
-- When the environment variable `ROOSTY_TODAY` holds a date written `YYYY-MM-DD`, roosty
+- When the environment variable `ROOSTR_TODAY` holds a date written `YYYY-MM-DD`, roostr
   takes that as today's date. Without it, today is the machine's date.
 - It is the only handle. It needs no time of day, because a period is counted in whole days
   (below), and it is an environment variable rather than an option so that it also reaches
   the overview, which takes no options.
 - Common practice for pinning a clock from outside is an environment variable:
   `SOURCE_DATE_EPOCH` (reproducible builds), `GIT_TEST_DATE_NOW` (Git's own test suite),
-  `FAKETIME` (libfaketime). Those carry a second; roosty needs a day.
+  `FAKETIME` (libfaketime). Those carry a second; roostr needs a day.
 
 ### A period is whole days
 
@@ -56,7 +56,7 @@ Roosty still writes nothing and runs no repository code for either.
   same period as `--since 2026-10-03`. The brief gave exactly this pair as its examples.
 - A commit belongs to the period when its commit date is at or after that moment. The last
   second of 2 October is outside; 00:00:00 on 3 October is inside.
-- A day is a day in the local time zone: the zone roosty runs under, which the standard
+- A day is a day in the local time zone: the zone roostr runs under, which the standard
   `TZ` variable sets. "Since 3 October" means since midnight where the owner is, not
   midnight in UTC. The tests pin `TZ=UTC` on every `changes` and overview command, so that
   00:00 is the same moment on every machine; no test runs under another zone.
@@ -67,14 +67,14 @@ started from, and the answer does not change between a morning and an afternoon 
 `journalctl --since 2026-10-03` and `docker logs --since 2026-10-03` both read a bare date as
 00:00 local time, which is the rule taken here for both forms.
 
-### `roosty changes`
+### `roostr changes`
 
-- `roosty changes --since <when>`; `--since=<when>` is the same. `<when>` is a number of
+- `roostr changes --since <when>`; `--since=<when>` is the same. `<when>` is a number of
   days (`7d`) or a date (`2026-10-03`). Without `--since` it means `7d`.
-- Reads Git and the files. Writes nothing. Never runs `.roosty/scan`.
+- Reads Git and the files. Writes nothing. Never runs `.roostr/scan`.
 - Only commits reachable from `HEAD` count.
 
-**Entrypoints.** "Then" is `.roosty/entrypoints.tsv` as committed when the period started:
+**Entrypoints.** "Then" is `.roostr/entrypoints.tsv` as committed when the period started:
 its content in the last commit made before the start. "Now" is the file in the working tree,
 committed or not, so a rescan shows up before it is committed. An entrypoint is its
 `<kind> <name>`, as in `scan`: one in the file now and not then is added, one then and not
@@ -138,7 +138,7 @@ entrypoints: 2 added, 1 removed   processes: 3 changed
 - `--since` with a value that is neither form (`yesterday`, `14`, a date that does not exist
   such as `2026-02-30`): names the value.
 - `--since` with no value.
-- No `.roosty/project.yml`: says to run `roosty init`, as every command does.
+- No `.roostr/project.yml`: says to run `roostr init`, as every command does.
 
 A Git repository that has no commits yet is not a refusal: there is nothing to compare and
 nothing changed, so the count line reads `entrypoints: not compared   processes: 0 changed`.
@@ -148,10 +148,10 @@ nothing changed, so the count line reads `entrypoints: not compared   processes:
 ```
 LAST 7 DAYS
   entrypoints: 2 added, 1 removed   processes: 3 changed
-  run roosty changes to see them
+  run roostr changes to see them
 ```
 
-- The first line is the count line of `roosty changes --since 7d`, character for character.
+- The first line is the count line of `roostr changes --since 7d`, character for character.
   The second line is the pointer.
 - Left out when nothing changed: no entrypoint added or removed (or not compared) and no
   process changed. Left out outside a Git repository and in a repository without commits.
@@ -165,7 +165,7 @@ unchanged), then processes.
 
 ```
 NEEDS ATTENTION
-  .roosty/processes/refund-booking.yml   cannot be read, run roosty validate
+  .roostr/processes/refund-booking.yml   cannot be read, run roostr validate
   book-workshop      app/models/booking.rb changed since this record was updated
   book-workshop      app/services/book_workshop.rb changed since this record was
                      updated
@@ -209,13 +209,13 @@ NEEDS ATTENTION never changes the exit code. The overview exits 0 with it.
 **Two limits**, stated in the amendment so that nobody reads more into the section than it
 holds:
 
-- Any change to a record counts as an update. Roosty does not know whether the change dealt
+- Any change to a record counts as an update. Roostr does not know whether the change dealt
   with the code change.
-- Roosty does not report whether `entrypoints.tsv` is current. Running `roosty scan` is the
+- Roostr does not report whether `entrypoints.tsv` is current. Running `roostr scan` is the
   check.
 
 **No entrypoint rule.** The brief had a second kind of line, `entrypoints may be out of
-date: run roosty scan`, for a file named in `entrypoints.tsv` with a commit newer than
+date: run roostr scan`, for a file named in `entrypoints.tsv` with a commit newer than
 `entrypoints.tsv`. Dropped on confirmation: it would fire on every commit to any file that
 holds an entrypoint, and a rescan that finds nothing new leaves `entrypoints.tsv` as it was,
 so nothing could clear it. Scenario 125 now guards the absence: a newer commit to a file
@@ -229,7 +229,7 @@ in the record to edit, so nothing to commit.
 
 - `checked` is optional and holds a date written `YYYY-MM-DD`. It means: someone compared
   the record with the code on that day and it still holds.
-- Roosty does not compare the date with anything. Setting it is an edit to the record, so
+- Roostr does not compare the date with anything. Setting it is an edit to the record, so
   the process is no longer listed while that edit is uncommitted (the rule above) and stays
   unlisted once it is committed (the record's last commit is then the newer one).
 - `validate` reports a `checked` that is not a date as a finding naming the record and the
@@ -237,7 +237,7 @@ in the record to edit, so nothing to commit.
   gives the form `YYYY-MM-DD`. An agent in a real project learns about `checked` from the
   one line in `AGENTS.md` and has no FORMATS.md; the finding is where it learns how the date
   is written.
-- `roosty show` prints it on a line of its own when the record has it. **Proposed** place
+- `roostr show` prints it on a line of its own when the record has it. **Proposed** place
   and form: the last line of the label block, after `try`, with the label `checked` in the
   same nine-wide label column: `  checked  2026-10-08`. Left out when the record has none.
 
@@ -246,7 +246,7 @@ in the record to edit, so nothing to commit.
 The line for `AGENTS.md` gains a sentence. It stays one unbroken line:
 
 ```
-When you need to understand this project's functionality, structure, or recent changes, run `roosty` for the project overview. Use `roosty show <id>` to inspect a specific process before modifying its behavior. After changing behavior a process describes, update its record, or set its `checked` date if the record still holds; after adding or removing an entrypoint, run `roosty scan`.
+When you need to understand this project's functionality, structure, or recent changes, run `roostr` for the project overview. Use `roostr show <id>` to inspect a specific process before modifying its behavior. After changing behavior a process describes, update its record, or set its `checked` date if the record still holds; after adding or removing an entrypoint, run `roostr scan`.
 ```
 
 **Proposed**, not asked for: the sentence above the line says why the line is there, and the
@@ -284,7 +284,7 @@ last 7 days start on 2026-10-03.
 | 2026-09-24 | Round prices to whole euros | `app/services/book_workshop.rb` |
 | 2026-10-05 | Add the waiting list | `app/models/booking.rb`, two new files (`waiting_list_controller.rb`, `waiting_list_job.rb`), `entrypoints.tsv` (+ `http POST /waiting_list`, + `job WaitingListJob`, both area Bookings) |
 | 2026-10-06 | Drop the booking page | `app/controllers/bookings_controller.rb`, `entrypoints.tsv` (− `http GET /bookings/:id`) |
-| 2026-10-07 | Offer a freed place to the next person waiting | `app/models/booking.rb`, `.roosty/processes/cancel-booking.yml` |
+| 2026-10-07 | Offer a freed place to the next person waiting | `app/models/booking.rb`, `.roostr/processes/cancel-booking.yml` |
 | 2026-10-08 | Send the reminder two days ahead | `app/jobs/booking_reminder_job.rb` |
 | 2026-10-09 | Show the trainer on the workshop page | `app/controllers/workshops_controller.rb` |
 
@@ -304,7 +304,7 @@ committed once on 2026-01-15, with today pinned to 2026-10-10.
 
 ### changes: what it reports
 
-96. In Atelier after the week of the waiting list, `roosty changes` prints the report
+96. In Atelier after the week of the waiting list, `roostr changes` prints the report
     exactly as laid out above, and writes nothing.
 97. The `entrypoints.tsv` in the folder, committed or not, is compared with the one
     committed before the period: an entrypoint a rescan added is listed with `+`, one it no
@@ -333,7 +333,7 @@ committed once on 2026-01-15, with today pinned to 2026-10-10.
      no `--since` gives `CHANGES SINCE 2026-10-03`, `--since 7d` the same, `--since 3d`
      gives `2026-10-07`, `--since 2026-09-21` gives `2026-09-21`; and `--since=3d`, written
      with an equals sign, gives `2026-10-07` (a test of its own).
-108. `ROOSTY_TODAY` sets today: with `ROOSTY_TODAY=2026-11-02` the last 7 days start on
+108. `ROOSTR_TODAY` sets today: with `ROOSTR_TODAY=2026-11-02` the last 7 days start on
      `2026-10-26`.
 109. A commit made at 00:00:00 on the first day of the period is reported.
 110. A commit made at 23:59:59 on the day before is not.
@@ -345,8 +345,8 @@ committed once on 2026-01-15, with today pinned to 2026-10-10.
      value. (The list shown for confirmation had `7`; a message that offers `7d` as an
      example would have named it by accident.)
 113. `--since` with no value is refused.
-114. Without `.roosty/project.yml`, `changes` says to run `roosty init`.
-115. `roosty changes` never runs `.roosty/scan`.
+114. Without `.roostr/project.yml`, `changes` says to run `roostr init`.
+115. `roostr changes` never runs `.roostr/scan`.
 
 ### The overview: LAST 7 DAYS
 
@@ -389,7 +389,7 @@ Unchanged from record 1a: outside a Git repository LAST 7 DAYS is left out.
 
 ### `checked` (added on confirmation)
 
-136. `roosty show` prints a record's `checked` date on a line of its own after `try`,
+136. `roostr show` prints a record's `checked` date on a line of its own after `try`,
      labelled `checked`.
 137. A record without `checked` has no such line.
 138. `validate` accepts `checked: 2026-10-08`.
@@ -413,8 +413,8 @@ Unchanged from record 1a: outside a Git repository LAST 7 DAYS is left out.
 - `test/scan/only_scan_runs_code_test.rb` gains the test for scenario 115,
   `test/show/show_process_test.rb` those for 136 and 137, `test/validate/validate_test.rb`
   those for 138 and 139.
-- No other test changes meaning. The overview helper pins `ROOSTY_TODAY` and `TZ` for every
-  overview test, so their transcripts start with `ROOSTY_TODAY=2026-10-10 TZ=UTC`; what they
+- No other test changes meaning. The overview helper pins `ROOSTR_TODAY` and `TZ` for every
+  overview test, so their transcripts start with `ROOSTR_TODAY=2026-10-10 TZ=UTC`; what they
   assert is the same.
 
 ## What the program prints today and these tests change
@@ -427,7 +427,7 @@ test pinned any of the three.
   prints two spaces. The frozen screen of scenario 116 pins three.
 - **Where NEEDS ATTENTION sits.** Record 1 puts it last. The program prints it between
   FUNCTIONALITY and WORK WITH THIS PROJECT. Scenario 116 pins it last, after LAST 7 DAYS.
-- **A record with a key roosty does not know.** The program lists such a record under NEEDS
+- **A record with a key roostr does not know.** The program lists such a record under NEEDS
   ATTENTION as unreadable, and `show` refuses it. Nothing here settles whether that is
   right for an unknown key in general; `checked` is now a known key.
 
@@ -443,7 +443,7 @@ commits (118), and no `checked` line without a `checked` key (137).
 - `commit "Add the waiting list", on: "2026-10-05"` gives the commit that date (noon UTC);
   `on:` also takes a full timestamp, `"2026-10-03T00:00:00+00:00"`, for the edge tests.
   Without `on:` a commit keeps the kit's fixed date, 2026-01-15.
-- `changes` and `overview` run with `ROOSTY_TODAY=2026-10-10` unless a test says
+- `changes` and `overview` run with `ROOSTR_TODAY=2026-10-10` unless a test says
   `today: "..."`, and with `TZ=UTC` so that "00:00" means the same on every machine. Both
   are shown on the command line of a failure's transcript.
 - `edit_file path` changes a file's content, for a commit or an uncommitted edit.
@@ -467,15 +467,15 @@ commits (118), and no `checked` line without a `checked` key (137).
 ## FORMATS.md
 
 Updated, to be copied into `app/` again: the `checked` key and what `validate` checks about
-it; a section on what roosty reads from Git (a period, `--since`, the entrypoints of then
-and now); `ROOSTY_TODAY` and `TZ`; `changes` in the exit codes. With the amendment: a
+it; a section on what roostr reads from Git (a period, `--since`, the entrypoints of then
+and now); `ROOSTR_TODAY` and `TZ`; `changes` in the exit codes. With the amendment: a
 section "What needs attention" with the reachability definition of "newer" and the two
 limits, and the sentence that a day is a day in the local time zone. The layouts stay out
 of it.
 
 ## Left out of this record
 
-- `roosty show` saying that its record is behind.
+- `roostr show` saying that its record is behind.
 - Comparing the `checked` date with anything: with today, with commit dates, with the date
   it had before. A `checked` date in the future. A quoted date.
 - Dates, hashes and authors of commits in `changes`; a subject longer than 76 characters;
@@ -488,13 +488,13 @@ of it.
 - Merges in `changes`: whether a commit that came in through a merge inside the period, but
   was made before it, belongs to the period. A merge with conflicts, and a merge commit
   that itself changes a listed file.
-- A value of `ROOSTY_TODAY` that is not a date. `--since 0d`, a date in the future, `--since`
+- A value of `ROOSTR_TODAY` that is not a date. `--since 0d`, a date in the future, `--since`
   given twice, other options and extra arguments.
 - A process that was deleted in the period, and a process whose record cannot be read, in
   `changes`. A `project.yml` that does not parse, for `changes`.
 - A listed file that Git does not track, that is ignored, or that was deleted. An
   `entrypoints.tsv` deleted in the period.
-- A `.roosty/` folder that is not at the top of its Git repository, and running from a
+- A `.roostr/` folder that is not at the top of its Git repository, and running from a
   subfolder (carried over from record 2).
 - Git not being installed.
 
@@ -503,5 +503,5 @@ of it.
 - Whether the overview should treat a record with an unknown key as unreadable (see "What
   the program prints today").
 - Closed in the amendment: nothing tells the owner that `entrypoints.tsv` is behind.
-  Running `roosty scan` is the check.
+  Running `roostr scan` is the check.
 - The label `other` (carried over from record 1a).

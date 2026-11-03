@@ -25,6 +25,6 @@ class ScanReportTest < AcceptanceTest
     scan
 
     assert_stdout_is "7 entrypoints, 0 added, 0 removed\n"
-    assert_file ".roosty/entrypoints.tsv", includes: "http\tPOST /bookings\tapp/controllers/checkout_controller.rb\tBookings\n"
+    assert_file ".roostr/entrypoints.tsv", includes: "http\tPOST /bookings\tapp/controllers/checkout_controller.rb\tBookings\n"
   end
 end

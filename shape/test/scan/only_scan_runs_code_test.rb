@@ -1,5 +1,5 @@
 class OnlyScanRunsCodeTest < AcceptanceTest
-  def setup = workspace("atelier") # initialised; each test adds a .roosty/scan that creates the file scan-was-run when it is run
+  def setup = workspace("atelier") # initialised; each test adds a .roostr/scan that creates the file scan-was-run when it is run
 
   test "the overview never runs the scan script" do
     scan_script "leaves-a-trace.sh"

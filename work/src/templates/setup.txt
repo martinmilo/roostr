@@ -2,16 +2,16 @@ AGENTS.md
 The owner adds this line to AGENTS.md, so that agents read the overview before
 they work on the project and keep it current afterwards:
 
-When you need to understand this project's functionality, structure, or recent changes, run `roosty` for the project overview. Use `roosty show <id>` to inspect a specific process before modifying its behavior. After changing behavior a process describes, update its record, or set its `checked` date if the record still holds; after adding or removing an entrypoint, run `roosty scan`.
+When you need to understand this project's functionality, structure, or recent changes, run `roostr` for the project overview. Use `roostr show <id>` to inspect a specific process before modifying its behavior. After changing behavior a process describes, update its record, or set its `checked` date if the record still holds; after adding or removing an entrypoint, run `roostr scan`.
 
 SETUP
 Give this instruction to an agent working in the repository, or follow it
 yourself.
 
-Set up roosty for this project. Do the steps in order. Where something cannot
+Set up roostr for this project. Do the steps in order. Where something cannot
 be established from the code or from the owner, write "unknown". Never guess.
 
-You may write only under .roosty/. Before you boot the framework or run any
+You may write only under .roostr/. Before you boot the framework or run any
 application code, read what booting does. If it may change data (migrations,
 queue workers, seeds), stop and ask the owner first. If the owner allows it,
 say in watch_out what booting changes. Never start the application, run jobs
@@ -19,9 +19,9 @@ or change data to check a try recipe. Write try from the code.
 
 1. Write the scan script first.
 
-   Create .roosty/scan and make it executable. It may be written in any
+   Create .roostr/scan and make it executable. It may be written in any
    language. The script must only read. It must not write files, change a
-   database or call the network. roosty runs it from the repository root and
+   database or call the network. roostr runs it from the repository root and
    reads what it prints:
 
      # covers: http job mail
@@ -50,10 +50,10 @@ or change data to check a try recipe. Write try from the code.
    Take the list from the framework (its routes command, its job and mailer
    classes), not from reading files by hand.
 
-   Run `roosty scan` and correct the script until it succeeds. It writes
-   .roosty/entrypoints.tsv, which is never edited by hand.
+   Run `roostr scan` and correct the script until it succeeds. It writes
+   .roostr/entrypoints.tsv, which is never edited by hand.
 
-2. Fill in .roosty/project.yml.
+2. Fill in .roostr/project.yml.
 
    The comments in the file describe each key. Keep watch_out to what someone
    must know before touching the project at all. What concerns one behaviour
@@ -64,7 +64,7 @@ or change data to check a try recipe. Write try from the code.
 
    Most important means what the project exists to do: behaviours that
    change data or serve its main content, not shared plumbing. Each behaviour
-   is one file, .roosty/processes/<id>.yml, and the file name is its id. Only
+   is one file, .roostr/processes/<id>.yml, and the file name is its id. Only
    name and description are required:
 
      name: Place an order
@@ -100,12 +100,12 @@ or change data to check a try recipe. Write try from the code.
      same entrypoint.
    - try: keep each line to 69 characters; it is printed as written.
 
-   Read each record back with `roosty show <id>`.
+   Read each record back with `roostr show <id>`.
 
-4. Finish with `roosty validate`.
+4. Finish with `roostr validate`.
 
    Correct every finding until it prints "No problems found". Then run
-   `roosty` and read the overview as someone new to the project would.
+   `roostr` and read the overview as someone new to the project would.
 
 "unknown" may be written wherever a value is text.
 
@@ -114,5 +114,5 @@ process yet, and let them choose what to describe next. The report has three
 separate parts: what you saw fail, what you suspect but did not verify, and
 what is unknown.
 
-Do not commit and do not edit AGENTS.md. The owner reviews .roosty/ first and
+Do not commit and do not edit AGENTS.md. The owner reviews .roostr/ first and
 adds the line.

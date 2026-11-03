@@ -7,7 +7,7 @@ exit codes, `scan`, and the validate fixes. No behaviour of any command changes;
 words `init` prints.
 
 Record 2 was implemented and a second project, Apps, was set up by an agent that had nothing
-but the output of `roosty init`. The setup worked, but the instruction left an unsafe
+but the output of `roostr init`. The setup worked, but the instruction left an unsafe
 boundary open (what the agent may run and write) and some rules about the inventory.
 
 This record first held another list of changes, written at 21:11 and never implemented. The
@@ -18,7 +18,7 @@ dropped from the first list is named under "Withdrawn".
 
 ### An execution boundary, a new paragraph before step 1
 
-- The agent may write only under `.roosty/`.
+- The agent may write only under `.roostr/`.
 - Before it boots the framework or runs any application code, it reads what booting does. If
   booting may change data (migrations, queue workers, seeds), it stops and asks the owner
   first. If the owner allows it, `watch_out` says what booting changes.
@@ -61,7 +61,7 @@ The sentences about `group`, `entrypoints` and `try` are now a list of the three
 - "unknown" may be written wherever a value is text.
 - The report to the owner has three separate parts: what the agent saw fail, what it
   suspects but did not verify, and what is unknown.
-- The last line is: "Do not commit and do not edit AGENTS.md. The owner reviews .roosty/
+- The last line is: "Do not commit and do not edit AGENTS.md. The owner reviews .roostr/
   first and adds the line."
 
 ### One sentence changed that the owner did not ask for
@@ -92,26 +92,26 @@ record in step 3 lists `job Orders::ReceiptJob` to match.
 
 ## What `init` prints
 
-On a second run the first line reads `exists  .roosty/project.yml` and the rest is the same.
+On a second run the first line reads `exists  .roostr/project.yml` and the rest is the same.
 The line for `AGENTS.md` is one unbroken line; every other line fits 80 columns.
 
 ```
-create  .roosty/project.yml
+create  .roostr/project.yml
 
 AGENTS.md
 The owner adds this line to AGENTS.md, so that agents read the overview before
 they work on the project:
 
-When you need to understand this project's functionality, structure, or recent changes, run `roosty` for the project overview. Use `roosty show <id>` to inspect a specific process before modifying its behavior.
+When you need to understand this project's functionality, structure, or recent changes, run `roostr` for the project overview. Use `roostr show <id>` to inspect a specific process before modifying its behavior.
 
 SETUP
 Give this instruction to an agent working in the repository, or follow it
 yourself.
 
-Set up roosty for this project. Do the steps in order. Where something cannot
+Set up roostr for this project. Do the steps in order. Where something cannot
 be established from the code or from the owner, write "unknown". Never guess.
 
-You may write only under .roosty/. Before you boot the framework or run any
+You may write only under .roostr/. Before you boot the framework or run any
 application code, read what booting does. If it may change data (migrations,
 queue workers, seeds), stop and ask the owner first. If the owner allows it,
 say in watch_out what booting changes. Never start the application, run jobs
@@ -119,9 +119,9 @@ or change data to check a try recipe. Write try from the code.
 
 1. Write the scan script first.
 
-   Create .roosty/scan and make it executable. It may be written in any
+   Create .roostr/scan and make it executable. It may be written in any
    language. The script must only read. It must not write files, change a
-   database or call the network. roosty runs it from the repository root and
+   database or call the network. roostr runs it from the repository root and
    reads what it prints:
 
      # covers: http job mail
@@ -147,10 +147,10 @@ or change data to check a try recipe. Write try from the code.
    Take the list from the framework (its routes command, its job and mailer
    classes), not from reading files by hand.
 
-   Run `roosty scan` and correct the script until it succeeds. It writes
-   .roosty/entrypoints.tsv, which is never edited by hand.
+   Run `roostr scan` and correct the script until it succeeds. It writes
+   .roostr/entrypoints.tsv, which is never edited by hand.
 
-2. Fill in .roosty/project.yml.
+2. Fill in .roostr/project.yml.
 
    The comments in the file describe each key. Keep watch_out to what someone
    must know before touching the project at all. What concerns one behaviour
@@ -160,7 +160,7 @@ or change data to check a try recipe. Write try from the code.
 
    Most important means what the project exists to do: behaviours that
    change data or serve its main content, not shared plumbing. Each behaviour
-   is one file, .roosty/processes/<id>.yml, and the file name is its id. Only
+   is one file, .roostr/processes/<id>.yml, and the file name is its id. Only
    name and description are required:
 
      name: Place an order
@@ -196,12 +196,12 @@ or change data to check a try recipe. Write try from the code.
      same entrypoint.
    - try: keep each line to 69 characters; it is printed as written.
 
-   Read each record back with `roosty show <id>`.
+   Read each record back with `roostr show <id>`.
 
-4. Finish with `roosty validate`.
+4. Finish with `roostr validate`.
 
    Correct every finding until it prints "No problems found". Then run
-   `roosty` and read the overview as someone new to the project would.
+   `roostr` and read the overview as someone new to the project would.
 
 "unknown" may be written wherever a value is text.
 
@@ -210,7 +210,7 @@ process yet, and let them choose what to describe next. The report has three
 separate parts: what you saw fail, what you suspect but did not verify, and
 what is unknown.
 
-Do not commit and do not edit AGENTS.md. The owner reviews .roosty/ first and
+Do not commit and do not edit AGENTS.md. The owner reviews .roostr/ first and
 adds the line.
 ```
 
@@ -222,7 +222,7 @@ above:
 
 - `test/init/init_test.rb`: "init prints create and the file it created, then the line for
   AGENTS.md and the setup instruction" (scenario 88).
-- `test/init/init_test.rb`: "run in a project that has .roosty/project.yml, init succeeds,
+- `test/init/init_test.rb`: "run in a project that has .roostr/project.yml, init succeeds,
   prints exists instead of create, the same line and instruction, and overwrites nothing"
   (scenario 91).
 
@@ -230,8 +230,8 @@ FORMATS.md is unchanged.
 
 ## Left out of this record
 
-Checking any of the new guidance by program. Nothing in roosty verifies that an agent wrote
-only under `.roosty/`, asked before booting, chose the area or the file as described, or set
+Checking any of the new guidance by program. Nothing in roostr verifies that an agent wrote
+only under `.roostr/`, asked before booting, chose the area or the file as described, or set
 `group` to the area of the first entrypoint. `scan` and `validate` check what they checked
 before.
 

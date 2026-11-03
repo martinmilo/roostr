@@ -1,7 +1,7 @@
 class SectionsLeftOutTest < AcceptanceTest
   test "with no operations, WORK WITH THIS PROJECT is left out and ENVIRONMENTS is still shown" do
     workspace "atelier"
-    write_file ".roosty/project.yml", "name: Atelier\nenvironments:\n  production: atelier.example (Hetzner)\n"
+    write_file ".roostr/project.yml", "name: Atelier\nenvironments:\n  production: atelier.example (Hetzner)\n"
 
     overview
 
@@ -11,7 +11,7 @@ class SectionsLeftOutTest < AcceptanceTest
 
   test "with no environments, ENVIRONMENTS is left out and WORK WITH THIS PROJECT is still shown" do
     workspace "atelier"
-    write_file ".roosty/project.yml", "name: Atelier\noperations:\n  start: bin/dev\n"
+    write_file ".roostr/project.yml", "name: Atelier\noperations:\n  start: bin/dev\n"
 
     overview
 
@@ -21,7 +21,7 @@ class SectionsLeftOutTest < AcceptanceTest
 
   test "with no watch_out, WATCH OUT is left out" do
     workspace "atelier"
-    write_file ".roosty/project.yml", "name: Atelier\nstack: Rails 8, PostgreSQL, Solid Queue\n"
+    write_file ".roostr/project.yml", "name: Atelier\nstack: Rails 8, PostgreSQL, Solid Queue\n"
 
     overview
 
@@ -30,7 +30,7 @@ class SectionsLeftOutTest < AcceptanceTest
   end
 
   test "a project with only project.yml prints the heading and FUNCTIONALITY reading not scanned yet" do
-    write_file ".roosty/project.yml", "name: Atelier\nstack: Rails 8, PostgreSQL, Solid Queue\n"
+    write_file ".roostr/project.yml", "name: Atelier\nstack: Rails 8, PostgreSQL, Solid Queue\n"
 
     overview
 

@@ -1,11 +1,11 @@
 # The commands of this project, each run in the test's workspace.
 #
-#   overview               roosty with no arguments
-#   show "book-workshop"   roosty show <id>; `show` alone runs it without an id
-#   validate               roosty validate
-#   scan                   roosty scan
-#   init                   roosty init
-#   changes                roosty changes; changes "--since", "3d" passes arguments on
+#   overview               roostr with no arguments
+#   show "book-workshop"   roostr show <id>; `show` alone runs it without an id
+#   validate               roostr validate
+#   scan                   roostr scan
+#   init                   roostr init
+#   changes                roostr changes; changes "--since", "3d" passes arguments on
 #
 # The overview and changes read the date. Their clock is always pinned, so a test never changes
 # its answer as real time passes: today is 2026-10-10 unless the test says today: "2026-11-02",
@@ -14,12 +14,12 @@
 #   atelier_under_git                      the Atelier fixture as a Git repository with one commit
 #   atelier_after_the_waiting_list_week    ...and a week of commits on top
 #
-# roosty scan runs the project's own script, .roosty/scan. In a test that script is a fake:
+# roostr scan runs the project's own script, .roostr/scan. In a test that script is a fake:
 #
 #   scan_prints "# covers: http\n"                      a script that prints this and exits 0
 #   scan_prints text, stderr: "no database", exit: 3    ...and writes to stderr, and exits 3
 #   scan_script "leaves-a-trace.sh"                     test/fixtures/scans/leaves-a-trace.sh
-module Roosty
+module Roostr
   TODAY = "2026-10-10"
 
   def overview(today: TODAY)       = cli(env: clock(today))
@@ -33,18 +33,18 @@ module Roosty
     script = ["#!/bin/sh"]
     script += ["cat <<'END_OF_OUTPUT'", output.chomp, "END_OF_OUTPUT"] unless output.empty?
     script += ["cat >&2 <<'END_OF_ERRORS'", stderr, "END_OF_ERRORS"] if stderr
-    write_executable ".roosty/scan", [*script, "exit #{exit}"].join("\n") + "\n"
+    write_executable ".roostr/scan", [*script, "exit #{exit}"].join("\n") + "\n"
 
     printed = output.empty? ? "  (nothing)" : output.chomp.gsub("\t", "→").gsub(/^/, "  ")
-    note_situation ".roosty/scan is an executable that #{"writes #{stderr.inspect} to stderr, " if stderr}" \
+    note_situation ".roostr/scan is an executable that #{"writes #{stderr.inspect} to stderr, " if stderr}" \
                    "exits #{exit} and prints this to stdout (→ is a tab character):\n#{printed}"
   end
 
   # The comment under the script's first line says what it does, and is shown when a test fails.
   def scan_script(name)
     source = fixture("scans/#{name}")
-    write_executable ".roosty/scan", source
-    note_situation ".roosty/scan is an executable that #{source.lines.drop(1).take_while { |line| line.start_with?("#") }.map { |line| line.delete_prefix("#").strip }.join(" ")}"
+    write_executable ".roostr/scan", source
+    note_situation ".roostr/scan is an executable that #{source.lines.drop(1).take_while { |line| line.start_with?("#") }.map { |line| line.delete_prefix("#").strip }.join(" ")}"
   end
 
   # Atelier as a Git repository with one commit, dated 2026-01-15. A failure then says which
@@ -66,15 +66,15 @@ module Roosty
     edit_file "app/models/booking.rb"
     write_file "app/controllers/waiting_list_controller.rb", "# Placeholder standing in for app/controllers/waiting_list_controller.rb in the Atelier fixture.\n"
     write_file "app/jobs/waiting_list_job.rb", "# Placeholder standing in for app/jobs/waiting_list_job.rb in the Atelier fixture.\n"
-    write_file ".roosty/entrypoints.tsv", fixture("entrypoints/waiting-list-added.tsv")
+    write_file ".roostr/entrypoints.tsv", fixture("entrypoints/waiting-list-added.tsv")
     commit "Add the waiting list", on: "2026-10-05"
 
     edit_file "app/controllers/bookings_controller.rb"
-    write_file ".roosty/entrypoints.tsv", fixture("entrypoints/booking-page-dropped.tsv")
+    write_file ".roostr/entrypoints.tsv", fixture("entrypoints/booking-page-dropped.tsv")
     commit "Drop the booking page", on: "2026-10-06"
 
     edit_file "app/models/booking.rb"
-    edit_file ".roosty/processes/cancel-booking.yml"
+    edit_file ".roostr/processes/cancel-booking.yml"
     commit "Offer a freed place to the next person waiting", on: "2026-10-07"
 
     edit_file "app/jobs/booking_reminder_job.rb"
@@ -86,5 +86,5 @@ module Roosty
 
   private
 
-  def clock(today) = { "ROOSTY_TODAY" => today, "TZ" => "UTC" }
+  def clock(today) = { "ROOSTR_TODAY" => today, "TZ" => "UTC" }
 end

@@ -188,7 +188,7 @@ pub(crate) fn overview(
     }
     if let Some(changes) = changes.filter(|changes| !changes.is_empty()) {
         sections.push(format!(
-            "LAST 7 DAYS\n{}\n  run roosty changes to see them",
+            "LAST 7 DAYS\n{}\n  run roostr changes to see them",
             table_line("", &changes.summary(), 0, 0)
         ));
     }
@@ -219,13 +219,13 @@ fn attention(repository: &Repository, changed_files: &[(String, String)]) -> Opt
     lines.extend(
         attention_files
             .iter()
-            .map(|file| paragraph(&format!("{file}: needs checking; run roosty validate"), 2)),
+            .map(|file| paragraph(&format!("{file}: needs checking; run roostr validate"), 2)),
     );
     lines.extend(
         repository
             .problems
             .iter()
-            .map(|problem| paragraph(&format!("{problem}; run roosty validate"), 2)),
+            .map(|problem| paragraph(&format!("{problem}; run roostr validate"), 2)),
     );
     let label_width = changed_files
         .iter()

@@ -81,7 +81,7 @@ tests did not cover, and anything you consider fragile.
      cannot tell it goes here. -->
 
 - **Stack:** Rust. One static binary, no runtime dependency.
-- **Build:** `bin/build` runs `cargo build` and puts the binary at `bin/roosty`.
+- **Build:** `bin/build` runs `cargo build` and puts the binary at `bin/roostr`.
 - **Conventions:** no framework knowledge in the core; Git through the `git`
   command, not libgit2; a maintained YAML crate (`serde_yaml` is archived);
   the program makes no network requests.

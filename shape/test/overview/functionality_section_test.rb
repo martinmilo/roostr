@@ -15,7 +15,7 @@ class FunctionalitySectionTest < AcceptanceTest
   end
 
   test "a process whose group matches no area is listed under its own heading with no counts" do
-    write_file ".roosty/processes/sync-calendar.yml", fixture("processes/sync-calendar.yml") # group Imports, which no entrypoint has as its area
+    write_file ".roostr/processes/sync-calendar.yml", fixture("processes/sync-calendar.yml") # group Imports, which no entrypoint has as its area
 
     overview
 
@@ -23,7 +23,7 @@ class FunctionalitySectionTest < AcceptanceTest
   end
 
   test "a process without a group is listed under other" do
-    write_file ".roosty/processes/import-workshops.yml", fixture("processes/import-workshops.yml")
+    write_file ".roostr/processes/import-workshops.yml", fixture("processes/import-workshops.yml")
 
     overview
 
@@ -31,7 +31,7 @@ class FunctionalitySectionTest < AcceptanceTest
   end
 
   test "a long description wraps under its column and is never cut" do
-    write_file ".roosty/processes/sync-calendar.yml", fixture("processes/sync-calendar.yml") # a description of 130 characters
+    write_file ".roostr/processes/sync-calendar.yml", fixture("processes/sync-calendar.yml") # a description of 130 characters
 
     overview
 
@@ -42,9 +42,9 @@ class FunctionalitySectionTest < AcceptanceTest
   end
 
   test "with entrypoints but no processes, FUNCTIONALITY shows the areas and their counts" do
-    delete_file ".roosty/processes/book-workshop.yml"
-    delete_file ".roosty/processes/cancel-booking.yml"
-    delete_file ".roosty/processes/remind-attendees.yml"
+    delete_file ".roostr/processes/book-workshop.yml"
+    delete_file ".roostr/processes/cancel-booking.yml"
+    delete_file ".roostr/processes/remind-attendees.yml"
 
     overview
 

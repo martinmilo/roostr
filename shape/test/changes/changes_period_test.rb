@@ -2,7 +2,7 @@ class ChangesPeriodTest < AcceptanceTest
   def setup = atelier_under_git # committed once on 2026-01-15; today is 2026-10-10 unless the test says otherwise
 
   { [] => "2026-10-03", ["--since", "7d"] => "2026-10-03", ["--since", "3d"] => "2026-10-07", ["--since", "2026-09-21"] => "2026-09-21" }.each do |arguments, first_day|
-    test "on 2026-10-10, roosty #{["changes", *arguments].join(" ")} starts its first line with CHANGES SINCE #{first_day}, the first day of the period" do
+    test "on 2026-10-10, roostr #{["changes", *arguments].join(" ")} starts its first line with CHANGES SINCE #{first_day}, the first day of the period" do
       changes(*arguments)
 
       assert_success
@@ -17,7 +17,7 @@ class ChangesPeriodTest < AcceptanceTest
     assert_stdout "CHANGES SINCE 2026-10-07\n"
   end
 
-  test "ROOSTY_TODAY sets what today is: on 2026-11-02 the last 7 days start on 2026-10-26" do
+  test "ROOSTR_TODAY sets what today is: on 2026-11-02 the last 7 days start on 2026-10-26" do
     changes today: "2026-11-02"
 
     assert_success

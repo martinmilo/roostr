@@ -8,7 +8,7 @@ use std::sync::atomic::{AtomicU64, Ordering};
 use crate::entrypoints::Inventory;
 use crate::repository::ENTRYPOINTS_FILE;
 
-const SCAN_FILE: &str = ".roosty/scan";
+const SCAN_FILE: &str = ".roostr/scan";
 
 pub(crate) struct Error {
     pub(crate) code: u8,

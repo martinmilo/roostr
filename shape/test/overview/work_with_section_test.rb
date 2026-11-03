@@ -2,7 +2,7 @@ class WorkWithSectionTest < AcceptanceTest
   def setup = workspace("atelier") # operations start, test and deploy; deploy has a note
 
   test "an operation's note is printed on the lines under its command, never on the command's line, and wraps at 80 columns" do
-    write_file ".roosty/project.yml", fixture("project/long-deploy-note.yml") # deploy has a note of 123 characters
+    write_file ".roostr/project.yml", fixture("project/long-deploy-note.yml") # deploy has a note of 123 characters
 
     overview
 

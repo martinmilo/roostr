@@ -4,7 +4,7 @@ require "minitest/autorun"
 Encoding.default_external = Encoding::UTF_8
 
 # ── This project ─────────────────────────────────────────────────────────
-PROGRAM = "bin/roosty" # the executable the tests run, relative to the work folder
+PROGRAM = "bin/roostr" # the executable the tests run, relative to the work folder
 # ─────────────────────────────────────────────────────────────────────────
 
 TEST_ROOT = __dir__
@@ -12,7 +12,7 @@ TEST_ROOT = __dir__
 Dir[File.join(TEST_ROOT, "support", "*.rb")].sort.each { |file| require file }
 
 class AcceptanceTest < Minitest::Test
-  include Fixtures, ExactText, Workspace, Commands, Roosty
+  include Fixtures, ExactText, Workspace, Commands, Roostr
 
   # test "a redeemed voucher cannot be redeemed again" do ... end
   def self.test(sentence, &block)

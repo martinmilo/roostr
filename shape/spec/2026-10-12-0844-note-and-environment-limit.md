@@ -25,7 +25,7 @@ An operation note says what someone must know before running the command: a pass
 asks for, how long it takes, what it must not be run against. An environment value says
 where the project runs. Neither is the place for a procedure. A procedure about one
 behaviour belongs in that behaviour's record; a procedure that concerns the whole project
-belongs in `watch_out`, within its limit, or outside roosty altogether.
+belongs in `watch_out`, within its limit, or outside roostr altogether.
 
 ### `validate`
 
@@ -43,7 +43,7 @@ change.
 
 The starter `project.yml` states the limit in the comments above `operations` and
 `environments`, as it already does above `watch_out`. Step 2 of the setup instruction
-("Fill in .roosty/project.yml") defers to those comments, so they are where an agent reads
+("Fill in .roostr/project.yml") defers to those comments, so they are where an agent reads
 the rule. The step also states it in its own words, so the limit is in the instruction an
 owner pastes to an agent and not only in a file the agent may skim.
 
@@ -68,7 +68,7 @@ The two comments in the starter file:
 Step 2 of the setup instruction:
 
 ```
-2. Fill in .roosty/project.yml.
+2. Fill in .roostr/project.yml.
 
    The comments in the file describe each key. Keep watch_out to what someone
    must know before touching the project at all. What concerns one behaviour
@@ -95,12 +95,12 @@ Every line of both fits 80 columns. Nothing else `init` prints or creates change
 
 65. The starter `project.yml` states the limit above `operations` and above `environments`.
     Covered by the existing test "in an empty folder called pottery-studio, init creates
-    .roosty/project.yml with name: pottery-studio and every other key as a commented
+    .roostr/project.yml with name: pottery-studio and every other key as a commented
     example, and nothing else"; its expected file `test/expected/starter_project.yml`
     changes.
 66. Step 2 of the setup instruction states the limit. Covered by the existing tests "init
     prints create and the file it created, then the line for AGENTS.md and the setup
-    instruction" and "run in a project that has .roosty/project.yml, init succeeds, prints
+    instruction" and "run in a project that has .roostr/project.yml, init succeeds, prints
     exists instead of create, the same line and instruction, and overwrites nothing"; their
     expected file `test/expected/init_guidance.txt` changes.
 
@@ -140,7 +140,7 @@ keys. It needs copying into `app/` again.
 
 ## Still open
 
-- `roosty changes` lists changed process records, but a change to `project.yml` (a new
+- `roostr changes` lists changed process records, but a change to `project.yml` (a new
   `watch_out` item, a new operation, a changed note) is not shown anywhere. Recorded here
   without tests. Carried over from record 3: whether the overview should treat a record
   with an unknown key as unreadable; the label `other`.

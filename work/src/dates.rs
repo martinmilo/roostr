@@ -25,12 +25,12 @@ pub(crate) struct Period {
 impl Period {
     pub(crate) fn since(when: &str) -> Result<Self, String> {
         let now = Local::now();
-        let today = match std::env::var("ROOSTY_TODAY") {
+        let today = match std::env::var("ROOSTR_TODAY") {
             Ok(text) => parse(&text).ok_or_else(|| {
-                format!("Invalid ROOSTY_TODAY {text:?}; expected a date written YYYY-MM-DD")
+                format!("Invalid ROOSTR_TODAY {text:?}; expected a date written YYYY-MM-DD")
             })?,
             Err(std::env::VarError::NotPresent) => now.date_naive(),
-            Err(error) => return Err(format!("Cannot read ROOSTY_TODAY: {error}")),
+            Err(error) => return Err(format!("Cannot read ROOSTR_TODAY: {error}")),
         };
         let first_day = first_day(when, today).ok_or_else(|| {
             format!(

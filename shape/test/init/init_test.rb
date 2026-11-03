@@ -1,18 +1,18 @@
 class InitTest < AcceptanceTest
-  test "in an empty folder called pottery-studio, init creates .roosty/project.yml with name: pottery-studio and every other key as a commented example, and nothing else" do
+  test "in an empty folder called pottery-studio, init creates .roostr/project.yml with name: pottery-studio and every other key as a commented example, and nothing else" do
     folder_named "pottery-studio"
 
     init
 
-    assert_file ".roosty/project.yml", is: expected("starter_project.yml")
-    assert_written_only ".roosty/project.yml"
+    assert_file ".roostr/project.yml", is: expected("starter_project.yml")
+    assert_written_only ".roostr/project.yml"
     assert_success
   end
 
   test "init prints create and the file it created, then the line for AGENTS.md and the setup instruction" do
     init
 
-    assert_stdout_is "create  .roosty/project.yml\n\n" + expected("init_guidance.txt")
+    assert_stdout_is "create  .roostr/project.yml\n\n" + expected("init_guidance.txt")
     assert_success
   end
 
@@ -34,12 +34,12 @@ class InitTest < AcceptanceTest
     assert_unchanged "AGENTS.md"
   end
 
-  test "run in a project that has .roosty/project.yml, init succeeds, prints exists instead of create, the same line and instruction, and overwrites nothing" do
+  test "run in a project that has .roostr/project.yml, init succeeds, prints exists instead of create, the same line and instruction, and overwrites nothing" do
     workspace "atelier"
 
     init
 
-    assert_stdout_is "exists  .roosty/project.yml\n\n" + expected("init_guidance.txt")
+    assert_stdout_is "exists  .roostr/project.yml\n\n" + expected("init_guidance.txt")
     assert_nothing_written
     assert_success
   end
