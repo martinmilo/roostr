@@ -2,7 +2,37 @@ AGENTS.md
 The owner adds this line to AGENTS.md, so that agents read the overview before
 they work on the project and keep it current afterwards:
 
-When you need to understand this project's functionality, structure, or recent changes, run `roostr` for the project overview. Use `roostr show <id>` to inspect a specific process before modifying its behavior. After changing behavior a process describes, update its record, or set its `checked` date if the record still holds; after adding or removing an entrypoint, run `roostr scan`.
+When you need to understand this project's functionality, structure, or recent changes, run `roostr` for the project overview; if your context holds no roostr project map, run it before you start. Use `roostr show <id>` to inspect a specific process before modifying its behavior. After changing behavior a process describes, update its record, or set its `checked` date if the record still holds; after adding or removing an entrypoint, run `roostr scan`. Before each commit, and before you finish, run `roostr check --base HEAD` and fix everything it reports.
+
+Claude Code reads AGENTS.md only where the project has no CLAUDE.md, and Gemini
+CLI reads GEMINI.md unless set otherwise. For them, CLAUDE.md or GEMINI.md holds
+a line @AGENTS.md, which brings AGENTS.md in, or the line above itself.
+
+CHECKS
+The line asks agents to keep .roostr/ current; these make sure of it. Each runs
+roostr check, which exits 1 when .roostr/ is behind the code and says what to
+fix. With --base it judges only the work done after that commit; with --staged,
+only the commit being made; with --session, what an agent did since its session
+started. roostr writes none of these files; the owner adds the ones they want.
+
+Claude Code: merge this into .claude/settings.json. When a session starts, the
+agent is given a short map of the project from .roostr/, and roostr session
+start notes the commit the session started at, in Git's own folder. The agent
+then cannot finish its turn while what it did in the session, committed or not,
+leaves .roostr/ behind. If roostr cannot run, the hooks do not hold the agent
+back:
+
+{{claude}}
+
+Git: save this as .git/hooks/pre-commit and make it executable, so that a commit
+that leaves .roostr/ behind is refused:
+
+#!/bin/sh
+{{cd}}roostr check --staged
+
+CI: run this on every pull request, with the full history fetched:
+
+{{cd}}roostr check --base origin/main
 
 SETUP
 Give this instruction to an agent working in the repository, or follow it
@@ -114,5 +144,5 @@ process yet, and let them choose what to describe next. The report has three
 separate parts: what you saw fail, what you suspect but did not verify, and
 what is unknown.
 
-Do not commit and do not edit AGENTS.md. The owner reviews .roostr/ first and
-adds the line.
+Do not commit, and do not edit AGENTS.md, CLAUDE.md or GEMINI.md. The owner
+reviews .roostr/ first and adds the line.

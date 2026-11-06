@@ -1,0 +1,9 @@
+name: Export bookings to "Accounts\2026"
+group: Reports
+description: Lists the month's bookings, the crème brûlée workshop at the café included, for the accountant.
+try: |
+  In a shell:
+    bin/rails runner 'ExportBookings.call(month: "2026-09")'
+  	Then open tmp/exports/2026-09.csv.
+why:
+  - Accounts asked for one file a month 📅 so that nothing is entered twice.

@@ -1,0 +1,5 @@
+roostr project map of Atelier, from .roostr/, kept by people and agents working here. Records can lag the code; where they differ, the code is current. `roostr show` with a process id prints a process in full: files, entrypoints, how to try it, outcomes. `roostr` prints the overview and recent changes.
+
+Stack: Rails 8, PostgreSQL, Solid Queue
+
+Left out to keep this map within 8,000 bytes: every process, every operation, every watch-out item, and the Description line. `roostr` prints the full overview.

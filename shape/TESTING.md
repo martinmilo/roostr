@@ -58,7 +58,7 @@ Assert what the behaviour promises, and nothing the program is free to change.
 
 | Assert | Leave alone |
 |---|---|
-| the exit code | how long it took |
+| the exit code | how long it took, unless returning promptly is the behaviour |
 | the part of stdout that carries the answer | the rest of the line, unless the spec fixes it |
 | the part of stderr that names the reason | the exact wording of the message, unless the spec fixes it |
 | files the command exists to produce, and that it wrote nothing else | files the program keeps for its own use |
@@ -163,17 +163,19 @@ the test is about; those stay visible in the test.
 | start from a prepared Git repository | `workspace "shop", git: true` (the fixture, committed once) |
 | give the folder a name, when the behaviour reads it | `folder_named "shop"` (first line of the test) |
 | make any folder a Git repository | `start_repository` (commits the folder as it is now) |
-| change that folder | `write_file path, text` · `write_executable path, text` · `edit_file path` · `delete_file path` |
-| use Git in it | `git "add", "vouchers"` · `commit "Redeem GIFT-2041"` (stages everything, then commits) · `commit "Redeem GIFT-2041", on: "2026-10-05"` (with that commit date) · `branch "refunds"` · `switch_to "main"` · `merge "refunds"` (a side branch, merged back) |
-| run the program | `cli "redeem", "GIFT-2041"` (options: `stdin: "text"`, `env: { "NAME" => "value" }`) |
+| change that folder | `write_file path, text` · `write_executable path, text` · `edit_file path` · `delete_file path` · `saved_with_a_byte_order_mark path` · `saved_with_windows_line_endings path` · `named_pipe path` (a FIFO nothing writes to) · `symbolic_link path, to: target` |
+| use Git in it | `git "add", "vouchers"` · `commit "Redeem GIFT-2041"` (stages everything, then commits) · `commit "Redeem GIFT-2041", on: "2026-10-05"` (with that commit date; `from: "second-checkout"` in that worktree) · `branch "refunds"` · `switch_to "main"` · `merge "refunds"` (a side branch, merged back) · `stage_everything_but "vouchers/GIFT-3050.json"` (`git add` of every change but these) · `stage_a_change_then_undo_it "vouchers.rb"` (staged, then the file as at HEAD again) · `linked_worktree "second-checkout"` (git worktree add) · `remove_the_last_commit_for_good` (reset, reflog expired, git gc) |
+| run the program | `cli "redeem", "GIFT-2041"` (options: `stdin: "text"`, `env: { "NAME" => "value" }`, `stdout: :closed` for a stdout whose reader has already gone, `stdin_held_open: true` for a stdin that stays open after the input until the program exits, `stdout: :full` for a stdout on `/dev/full`, a full disk, skipped where there is none, `from_a_deleted_folder: true` to run it in a folder deleted after its shell went in) · `environment_for_commands "PATH" => path` (for every command after it; for helpers that put a fake program on the PATH, in a `folder_outside_the_workspace`) |
 | run another executable from the work folder | `script "bin/backup", "data"` |
 | check how it ended | `assert_success` · `assert_failure` · `assert_exit 2` |
-| check what it printed | `assert_stdout "text"` · `assert_stderr /pattern/` · `refute_stdout "text"` · `refute_stderr "text"` |
+| check what it printed | `assert_stdout "text"` · `assert_stderr /pattern/` · `refute_stdout "text"` · `refute_stderr "text"` · `assert_stderr_is ""` (the whole of stderr) |
 | check the whole output | `assert_stdout_is expected("list_shop.txt")` |
+| check that it returned in time, where that is the behaviour | `assert_finished_within 3` (seconds from start to exit; whatever the program left running is stopped once it has exited) |
 | check the shape of a screen | `assert_lines_within 80` (every line fits) · `assert_stdout_lines 3` (exactly that many) |
+| check JSON on stdout | `assert_json "vouchers.2.amount", 50` (keys and positions from 1, joined by dots; a missing key fails, so `nil` means null) · `assert_json "vouchers.*.code", ["GIFT-2041", "GIFT-1187"]` (`*` is every item) · `assert_json "note", /expired/` · `assert_json_is expected("list_shop.json")` (the whole object, parsed; `at: "vouchers"` for a part) |
 | say in a failure what a helper set up | `note_situation "GIFT-2041 is a 50 € voucher"` (shown under the transcript; for helpers, not tests) |
 | check files | `assert_file path` · `assert_file path, includes: "text"` · `assert_file path, is: expected("file")` · `refute_file path` |
-| check nothing else changed | `assert_nothing_written` · `assert_unchanged path` · `assert_written_only path` (all compare with the moment before the last command) |
+| check nothing else changed | `assert_nothing_written` · `assert_unchanged path` · `assert_written_only path` (all compare with the moment before the last command) · `assert_nothing_written git_folder: true` · `assert_written_only_under ".git/vouchers/"` (wrote something, and only in that folder, `.git` included: for a program that keeps its own files in the Git folder) |
 | read test data | `fixture("vouchers/GIFT-3050.json")` · `expected("list_shop.txt")` · `stdout` · `stderr` · `read_file path` |
 
 Every command runs inside the test's own folder. Without `workspace`, that folder is empty.
@@ -190,7 +192,8 @@ An executable in a fixture workspace is still executable in the test's copy.
   date and ignore the machine's Git configuration. The program runs with the same settings.
   When the answer depends on when a commit was made, give the commit a date:
   `commit "...", on:` takes a day or a full timestamp. A failure in a Git workspace prints
-  the commits and what is uncommitted under the transcript.
+  the commits and what is uncommitted under the transcript (the first 10 uncommitted files
+  when there are more than 20).
 
 ## 7. What you may ask of the program
 
@@ -233,6 +236,25 @@ Run `ruby test/run.rb` and go through this list.
 - Every refusal asserts its reason and what was left behind.
 - Nothing depends on today's date, on test order, or on another test's data.
 - Tests that already passed still pass (`ruby test/run.rb --all`).
+- Nothing assumes Linux: see below.
+
+### Where the suite runs
+
+The suite runs on Linux and on macOS: CI and the release run it on both. It needs Ruby 3.0
+or later with Minitest, which Ruby bundles (the Ruby macOS ships, 2.6, is too old; install
+one with Homebrew or `ruby/setup-ruby`), Git 2.28 or later, and `sh`, `bash` and the usual
+tools on the `PATH`. `run.rb` checks the versions of Ruby and Git. What a test must not
+assume:
+
+- **GNU tools.** A fixture script is POSIX `sh`, with tools that behave the same on both:
+  no `sed -i`, `stat -c`, `readlink -f`, `date -d`, `timeout`, `seq` or `/proc`.
+- **Letter case.** macOS ignores case in file names by default. Never create two files
+  whose names differ only in case in one folder, and never let a file in another case
+  satisfy a test that expects a file to be missing.
+- **Non-ASCII names.** Write them precomposed (NFC), as Ruby does: macOS keeps them so, and
+  Git there precomposes what it reads. Use one only where the name is the behaviour.
+- **Paths.** The kit takes every folder by its real path (`/var` is a link on macOS). Never
+  assert an absolute path.
 
 ## 9. Examples
 

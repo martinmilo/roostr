@@ -1,0 +1,6 @@
+name: Atelier
+operations:
+  setup: |
+    bin/setup
+    bin/rails db:seed
+  start: bin/dev

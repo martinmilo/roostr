@@ -1,0 +1,13 @@
+#!/bin/sh
+# answers git --version with git version 2.43.0, and refuses everything else as Git refuses a
+# checkout that belongs to another user: it exits 128 and names the safe.directory command to run.
+for arg in "$@"; do
+  case "$arg" in --version|version) echo "git version 2.43.0"; exit 0 ;; esac
+done
+cat >&2 <<'END_OF_ERRORS'
+fatal: detected dubious ownership in repository at '/workspace/atelier'
+To add an exception for this directory, call:
+
+	git config --global --add safe.directory /workspace/atelier
+END_OF_ERRORS
+exit 128

@@ -1,0 +1,7 @@
+name: List the workshops
+group: Workshops
+description: Show the coming workshops with their dates and the places still free.
+entrypoints:
+  - http GET /workshops
+files:
+  - app/controllers/workshops_controller.rb

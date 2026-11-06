@@ -1,0 +1,25 @@
+name: Book a place on a workshop
+group: Bookings
+description: Reserve a place, take payment and confirm by email.
+entrypoints:
+  - http POST /bookings
+  - mail BookingMailer#confirmation
+  - mail BookingMailer#reminder
+files:
+  - path: app/models/booking.rb
+    note: holds the state machine
+  - app/services/book_workshop.rb
+try: |
+  Open /workshops and pick a date with free places.
+  Book with card 4242 4242 4242 4242 and any future expiry.
+  Check the confirmation mail in /letter_opener.
+outcomes:
+  confirmed:
+    when: payment succeeds
+    then: the booking is saved, the place count goes down and the confirmation mail is sent
+  full:
+    when: no places left
+    then: booking refused, nothing saved
+why:
+  - Payment is taken before the place is held so that abandoned checkouts never block a seat.
+  - Confirmation goes by mail rather than SMS because most bookings come from the studio's newsletter.

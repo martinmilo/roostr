@@ -1,0 +1,8 @@
+name: Move a booking to another date
+group: Bookings
+description: Move a booking to a later workshop with a free place.
+files:
+  - path: app/models/booking.rb
+    note: holds the state machine
+  - app/services/move_booking.rb
+  - app/mailers/booking_mailer.rb

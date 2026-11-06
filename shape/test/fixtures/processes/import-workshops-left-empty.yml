@@ -1,0 +1,11 @@
+name: Import workshops from the studio calendar
+group:
+description: Create a workshop for each event in the studio calendar.
+entrypoints:
+files:
+  - path: app/models/booking.rb
+    note:
+try:
+outcomes:
+why:
+checked:

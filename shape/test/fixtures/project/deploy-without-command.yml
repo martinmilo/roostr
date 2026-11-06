@@ -1,0 +1,6 @@
+name: Atelier
+operations:
+  start: bin/dev
+  test: bin/rails test
+  deploy:
+  #   command: bin/kamal deploy

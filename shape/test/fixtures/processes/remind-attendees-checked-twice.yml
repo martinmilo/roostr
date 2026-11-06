@@ -1,0 +1,10 @@
+name: Remind attendees
+group: Notifications
+description: Remind attendees the day before a workshop
+checked: 2026-09-01
+entrypoints:
+  - job BookingReminderJob
+  - mail BookingMailer#reminder
+files:
+  - app/jobs/booking_reminder_job.rb
+checked: 2026-10-08

@@ -1,0 +1,14 @@
+name: Atelier
+# Each escape below is a zero-width space (U+200B) or a soft hyphen (U+00AD): every value
+# written so is empty once the map drops the characters that do not show.
+stack: "\U0000200B"
+description: "\U000000AD\U0000200B"
+watch_out:
+  - ""
+  - "\U0000200B"
+operations:
+  start:
+    command: bin/dev
+    note: "\U0000200B"
+  test: "\U0000200B"
+  "\U0000200B": bin/rails test

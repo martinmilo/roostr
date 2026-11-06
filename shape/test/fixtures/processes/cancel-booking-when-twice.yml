@@ -1,0 +1,12 @@
+name: Cancel a booking
+group: Bookings
+description: Cancel a booking and free the place for the next person on the waiting list.
+entrypoints:
+  - http DELETE /bookings/:id
+files:
+  - app/models/booking.rb
+outcomes:
+  refunded:
+    when: the workshop is more than two days away
+    then: the payment is refunded to the card
+    when: the booking was paid by card

@@ -1,0 +1,14 @@
+# Operations that ship, which the map leaves out, among four it keeps (start,
+# deployment-status, predeploy-check, test). "de\U000000ADploy" holds a soft hyphen.
+name: Atelier
+operations:
+  start: bin/dev
+  deploy-production: fly deploy --app atelier-production
+  "deploy:staging": fly deploy --app atelier-staging
+  staging.deploy: bin/kamal deploy -d staging
+  Release: bin/release production
+  publish_gem: gem push pkg/atelier.gem
+  "de\U000000ADploy": bin/kamal deploy
+  deployment-status: bin/kamal app details
+  predeploy-check: bin/rails test:system
+  test: bin/rails test

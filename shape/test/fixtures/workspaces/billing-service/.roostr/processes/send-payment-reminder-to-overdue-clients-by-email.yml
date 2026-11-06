@@ -1,0 +1,14 @@
+name: Send a payment reminder by email
+group: ReminderSchedulingAndDunningAdministration
+description: Mail each client whose invoice is overdue, once a week.
+entrypoints:
+  - http POST /api/v1/organisations/{organisationId}/invoices/{invoiceId}/payment-reminders
+files:
+  - src/main/java/com/example/billing/reminders/OverdueInvoiceReminderController.java
+outcomes:
+  reminder-mailed-and-noted-in-the-invoice-history:
+    when: the invoice is overdue and unpaid
+    then: a reminder is mailed to the client and noted in the invoice history
+  skipped:
+    when: the client paid in the meantime
+    then: nothing is sent

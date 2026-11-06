@@ -1,0 +1,5 @@
+name: Order clay
+group: other
+description: Order clay from the supplier when the stock runs low.
+files:
+  - app/jobs/clay_order_job.rb

@@ -1,0 +1,5 @@
+name: Count the stock
+group: stock
+description: Count the clay, glazes and tools left at the end of each month.
+files:
+  - app/services/count_stock.rb

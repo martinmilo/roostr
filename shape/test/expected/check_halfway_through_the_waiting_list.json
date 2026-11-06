@@ -1,0 +1,13 @@
+{
+  "format": 1,
+  "base": "HEAD",
+  "staged": false,
+  "session": null,
+  "problems": [
+    { "kind": "entrypoints_behind", "added": [], "removed": ["mail BookingMailer#reminder"] },
+    { "kind": "needs_attention", "process": "book-workshop", "files": ["app/models/booking.rb"] },
+    { "kind": "needs_attention", "process": "cancel-booking", "files": ["app/models/booking.rb"] },
+    { "kind": "not_described", "entrypoint": "http POST /waiting_list" },
+    { "kind": "not_described", "entrypoint": "job WaitingListJob" }
+  ]
+}

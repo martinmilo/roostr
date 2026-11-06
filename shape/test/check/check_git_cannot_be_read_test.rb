@@ -1,0 +1,33 @@
+class CheckGitCannotBeReadTest < AcceptanceTest
+  def setup = atelier_under_git # committed once, nothing uncommitted
+
+  test "with git not on the PATH, check cannot run in a Git repository: exit 2, nothing on stdout, and stderr says that git was not found on the PATH" do
+    git_not_on_the_path
+
+    check
+
+    assert_exit 2
+    assert_stdout_is ""
+    assert_stderr "git was not found on the PATH"
+  end
+
+  test "when Git refuses the repository, check exits 2 and passes on all that Git said, the safe.directory command included" do
+    git_refuses_the_repository
+
+    check "--base", "HEAD"
+
+    assert_exit 2
+    assert_stderr "fatal: detected dubious ownership in repository at '/workspace/atelier'"
+    assert_stderr "git config --global --add safe.directory /workspace/atelier"
+  end
+
+  test "with a Git older than 2.25, check exits 2 and says that roostr needs Git 2.25 or later and that this one is 2.20.0" do
+    git_older_than_supported
+
+    check
+
+    assert_exit 2
+    assert_stderr "2.25 or later"
+    assert_stderr "2.20.0"
+  end
+end

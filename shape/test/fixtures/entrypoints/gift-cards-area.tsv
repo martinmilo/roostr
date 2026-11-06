@@ -1,0 +1,9 @@
+# covers: http job mail
+http	DELETE /bookings/:id	app/controllers/bookings_controller.rb	Bookings
+http	GET /bookings/:id	app/controllers/bookings_controller.rb	Bookings
+http	GET /workshops	app/controllers/workshops_controller.rb	Workshops
+http	POST /bookings	app/controllers/bookings_controller.rb	Bookings
+http	POST /gift_cards	app/controllers/gift_cards_controller.rb	GiftCards
+job	BookingReminderJob	app/jobs/booking_reminder_job.rb	Notifications
+mail	BookingMailer#confirmation	app/mailers/booking_mailer.rb
+mail	BookingMailer#reminder	app/mailers/booking_mailer.rb

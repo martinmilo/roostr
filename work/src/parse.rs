@@ -1,27 +1,71 @@
 use std::collections::HashSet;
 
-use saphyr::{LoadableYamlNode, YamlOwned};
-
+use crate::characters;
 use crate::model::{
-    CodeFile, EntrypointRef, Located, Operation, Outcome, Parsed, Process, Project,
+    CodeFile, EntrypointRef, Located, Operation, Outcome, Parsed, Place, Problem, Process, Project,
 };
+use crate::yaml::{self, Node};
 
-fn document(text: &str) -> Result<YamlOwned, String> {
-    let mut documents =
-        YamlOwned::load_from_str(text).map_err(|error| format!("cannot parse YAML: {error}"))?;
-    if documents.len() != 1 {
-        return Err("expected one YAML mapping document".into());
+// The YAML document in `text`, a byte order mark ignored. A key written twice is a
+// problem the file is still read with.
+fn document(text: &str, check: &mut Check) -> Result<Node, String> {
+    let document = yaml::load(text.strip_prefix('\u{feff}').unwrap_or(text))?;
+    for repeated in &document.repeated {
+        check.readable(&repeated.path, written_more_than_once(&repeated.lines));
     }
-    let value = documents.remove(0);
-    if !matches!(value, YamlOwned::Mapping(_)) {
-        return Err("expected a YAML mapping".into());
+    hidden_characters(&document.root, "", check);
+    Ok(document.root)
+}
+
+// Every string the document holds, keys and values, checked for characters that are invisible
+// or change how text shows: one finding per string, on the path of the key whose value or
+// name it is. Of a key written twice, only the value read counts.
+fn hidden_characters(node: &Node, at: &str, check: &mut Check) {
+    match node {
+        Node::Scalar { text, .. } => check.hidden(at, text),
+        Node::Sequence(items) => {
+            for (index, item) in items.iter().enumerate() {
+                hidden_characters(item, &key_path(at, &(index + 1).to_string()), check);
+            }
+        }
+        Node::Mapping(_) => {
+            for (key, value) in node.entries().unwrap_or_default() {
+                let Some(name) = key.name() else {
+                    continue;
+                };
+                let path = key_path(at, name);
+                check.hidden(&path, name);
+                hidden_characters(value, &path, check);
+            }
+        }
     }
-    Ok(value)
+}
+
+fn written_more_than_once(lines: &[usize]) -> String {
+    let Some((last, earlier)) = lines.split_last() else {
+        return "written more than once".into();
+    };
+    let times = if lines.len() == 2 {
+        "twice".to_owned()
+    } else {
+        format!("{} times", lines.len())
+    };
+    let earlier: Vec<_> = earlier.iter().map(ToString::to_string).collect();
+    format!(
+        "written {times}, on lines {} and {last}; the value on line {last} is the one read",
+        earlier.join(", ")
+    )
+}
+
+/// The value written for `key`, unless nothing is: a key with nothing after it, or with the
+/// empty string, is not there.
+fn present<'a>(node: &'a Node, key: &str) -> Option<&'a Node> {
+    node.get(key).filter(|value| !value.is_empty_value())
 }
 
 #[derive(Default)]
 struct Check {
-    problems: Vec<String>,
+    problems: Vec<Problem>,
 }
 
 fn key_path(parent: &str, key: &str) -> String {
@@ -34,16 +78,48 @@ fn key_path(parent: &str, key: &str) -> String {
 
 impl Check {
     fn problem(&mut self, key: &str, message: impl std::fmt::Display) {
-        self.problems.push(format!("{key}: {message}"));
+        let place = if key.is_empty() {
+            Place::File
+        } else {
+            Place::Key(key.to_owned())
+        };
+        self.problems.push(Problem::new(place, message.to_string()));
+    }
+
+    // A problem the file is still read with: a limit on length or count, a key written
+    // twice, an operation with no command.
+    fn readable(&mut self, key: &str, message: impl Into<String>) {
+        self.problems.push(Problem {
+            place: Place::Key(key.to_owned()),
+            message: message.into(),
+            readable: true,
+        });
+    }
+
+    // A string holding characters that are invisible or change how text shows: the file is
+    // still read, and the overview prints the string as written.
+    fn hidden(&mut self, key: &str, text: &str) {
+        let found = characters::reported(text);
+        if !found.is_empty() {
+            self.problems.push(Problem {
+                place: if key.is_empty() {
+                    Place::File
+                } else {
+                    Place::Key(key.to_owned())
+                },
+                message: characters::finding(&found),
+                readable: true,
+            });
+        }
     }
 
     fn max_length(&mut self, text: &str, key: &str, limit: usize) {
         if text.chars().count() > limit {
-            self.problem(key, format!("must have at most {limit} characters"));
+            self.readable(key, format!("must have at most {limit} characters"));
         }
     }
 
-    fn string(&mut self, value: &YamlOwned, key: &str, multiline: bool) -> Option<String> {
+    fn string(&mut self, value: &Node, key: &str, multiline: bool) -> Option<String> {
         match value.as_str() {
             Some(text) if multiline || !text.contains(['\n', '\r']) => Some(text.to_owned()),
             _ => {
@@ -62,14 +138,14 @@ impl Check {
 
     fn field(
         &mut self,
-        node: &YamlOwned,
+        node: &Node,
         key: &str,
         parent: &str,
         required: bool,
         multiline: bool,
     ) -> Option<String> {
         let path = key_path(parent, key);
-        let Some(value) = node.as_mapping_get(key) else {
+        let Some(value) = present(node, key) else {
             if required {
                 self.problem(&path, "is required");
             }
@@ -83,41 +159,52 @@ impl Check {
         Some(value)
     }
 
-    fn mapping<'a>(&mut self, value: &'a YamlOwned, key: &str) -> Vec<(String, &'a YamlOwned)> {
-        let Some(mapping) = value.as_mapping() else {
+    // The entries of a map, each named as written: `200:` is the name "200".
+    fn mapping<'a>(&mut self, value: &'a Node, key: &str) -> Vec<(String, &'a Node)> {
+        let Some(entries) = value.entries() else {
             self.problem(key, "must be a map");
             return Vec::new();
         };
-        mapping
-            .iter()
-            .filter_map(|(name, value)| {
-                let location = if key.is_empty() {
-                    "key".to_owned()
-                } else {
-                    format!("{key} key")
-                };
-                self.string(name, &location, false)
-                    .map(|name| (name, value))
+        entries
+            .into_iter()
+            .filter_map(|(name, value)| match name.name() {
+                // A key holding a line break is a name all the same: text output writes the
+                // break out, so that its findings stay on their lines.
+                Some(name) if !name.is_empty() => Some((name.to_owned(), value)),
+                _ => {
+                    // A key that is not a name has no dotted path to name it by.
+                    let location = if key.is_empty() {
+                        "key".to_owned()
+                    } else {
+                        format!("{key} key")
+                    };
+                    self.problems.push(Problem::new(
+                        Place::File,
+                        format!("{location}: must be a one-line string"),
+                    ));
+                    None
+                }
             })
             .collect()
     }
 
-    fn record(&mut self, node: &YamlOwned, parent: &str, allowed_keys: &[&str]) {
-        for (key, _) in self.mapping(node, parent) {
-            if !allowed_keys.contains(&key.as_str()) {
+    fn record(&mut self, node: &Node, parent: &str, allowed_keys: &[&str]) {
+        for (key, value) in self.mapping(node, parent) {
+            // A key with nothing after it is as if it were not written.
+            if !allowed_keys.contains(&key.as_str()) && !value.is_empty_value() {
                 self.problem(&key_path(parent, &key), "unknown key");
             }
         }
     }
 
-    fn map_field<'a>(&mut self, node: &'a YamlOwned, key: &str) -> Vec<(String, &'a YamlOwned)> {
-        node.as_mapping_get(key)
+    fn map_field<'a>(&mut self, node: &'a Node, key: &str) -> Vec<(String, &'a Node)> {
+        present(node, key)
             .map(|value| self.mapping(value, key))
             .unwrap_or_default()
     }
 
-    fn sequence<'a>(&mut self, node: &'a YamlOwned, key: &str) -> &'a [YamlOwned] {
-        let Some(value) = node.as_mapping_get(key) else {
+    fn sequence<'a>(&mut self, node: &'a Node, key: &str) -> &'a [Node] {
+        let Some(value) = present(node, key) else {
             return &[];
         };
         if let Some(sequence) = value.as_sequence() {
@@ -128,7 +215,7 @@ impl Check {
         }
     }
 
-    fn strings(&mut self, node: &YamlOwned, key: &str, multiline: bool) -> Vec<String> {
+    fn strings(&mut self, node: &Node, key: &str, multiline: bool) -> Vec<String> {
         self.sequence(node, key)
             .iter()
             .enumerate()
@@ -137,14 +224,36 @@ impl Check {
             })
             .collect()
     }
+
+    // An operation's command: any string, one line asked for but several read.
+    fn command(&mut self, value: &Node, key: &str) -> Option<String> {
+        let Some(command) = value.as_str() else {
+            self.problem(key, "must be a one-line string");
+            return None;
+        };
+        if command.trim().is_empty() {
+            return None;
+        }
+        if command
+            .strip_suffix('\n')
+            .unwrap_or(command)
+            .contains(['\n', '\r'])
+        {
+            self.readable(
+                key,
+                "must be one line; put the steps in a script and name the script here",
+            );
+        }
+        Some(command.to_owned())
+    }
 }
 
 pub(crate) fn project(text: &str) -> Parsed<Project> {
-    let node = match document(text) {
+    let mut check = Check::default();
+    let node = match document(text, &mut check) {
         Ok(node) => node,
         Err(error) => return Parsed::failed(error),
     };
-    let mut check = Check::default();
     check.record(
         &node,
         "",
@@ -163,12 +272,9 @@ pub(crate) fn project(text: &str) -> Parsed<Project> {
     let stack = check.field(&node, "stack", "", false, false);
     let description = check.field(&node, "description", "", false, false);
     let watch_out = check.strings(&node, "watch_out", false);
-    if let Some(items) = node
-        .as_mapping_get("watch_out")
-        .and_then(YamlOwned::as_sequence)
-    {
+    if let Some(items) = present(&node, "watch_out").and_then(Node::as_sequence) {
         if items.len() > 7 {
-            check.problem("watch_out", "must have at most 7 items");
+            check.readable("watch_out", "must have at most 7 items");
         }
         for (index, item) in items.iter().enumerate() {
             if let Some(text) = item.as_str() {
@@ -179,35 +285,41 @@ pub(crate) fn project(text: &str) -> Parsed<Project> {
     let mut operations = Vec::new();
     for (name, value) in check.map_field(&node, "operations") {
         let key = key_path("operations", &name);
-        let (command, note) = if value.is_string() {
-            (check.string(value, &key, false), None)
+        let (command, note) = if value.is_empty_value() {
+            (None, None)
         } else if value.is_mapping() {
             check.record(value, &key, &["command", "note"]);
             (
-                check.field(value, "command", &key, true, false),
+                present(value, "command")
+                    .and_then(|command| check.command(command, &key_path(&key, "command"))),
                 check.field(value, "note", &key, false, false),
             )
+        } else if value.is_string() {
+            (check.command(value, &key), None)
         } else {
             check.problem(&key, "must be a command string or a map");
-            (None, None)
+            continue;
         };
         if let Some(note) = &note {
             check.max_length(note, &key_path(&key, "note"), 160);
         }
-        if let Some(command) = command {
-            operations.push((name, Operation { command, note }));
+        match command {
+            Some(command) => operations.push((name, Operation { command, note })),
+            None => check.readable(&key, "has no command; write the command that runs it"),
         }
     }
-    let environments = check
-        .map_field(&node, "environments")
-        .into_iter()
-        .filter_map(|(name, value)| {
-            let key = key_path("environments", &name);
-            let value = check.string(value, &key, false)?;
+    let mut environments = Vec::new();
+    for (name, value) in check.map_field(&node, "environments") {
+        let key = key_path("environments", &name);
+        if value.is_empty_value() {
+            check.readable(&key, "has no value; write where the environment runs");
+            continue;
+        }
+        if let Some(value) = check.string(value, &key, false) {
             check.max_length(&value, &key, 160);
-            Some((name, value))
-        })
-        .collect();
+            environments.push((name, value));
+        }
+    }
     Parsed {
         value: Some(Project {
             name,
@@ -222,11 +334,11 @@ pub(crate) fn project(text: &str) -> Parsed<Project> {
 }
 
 pub(crate) fn process(text: &str) -> Parsed<Process> {
-    let node = match document(text) {
+    let mut check = Check::default();
+    let node = match document(text, &mut check) {
         Ok(node) => node,
         Err(error) => return Parsed::failed(error),
     };
-    let mut check = Check::default();
     check.record(
         &node,
         "",
@@ -299,6 +411,9 @@ pub(crate) fn process(text: &str) -> Parsed<Process> {
     let mut outcomes = Vec::new();
     for (name, value) in check.map_field(&node, "outcomes") {
         let key = key_path("outcomes", &name);
+        if value.is_empty_value() {
+            continue;
+        }
         if !value.is_mapping() {
             check.problem(&key, "must be a map");
             continue;
@@ -311,14 +426,18 @@ pub(crate) fn process(text: &str) -> Parsed<Process> {
         }
     }
     let why = check.strings(&node, "why", true);
-    let checked = node.as_mapping_get("checked").and_then(|value| {
+    let checked = present(&node, "checked").and_then(|value| {
         if let Some(text) = value
             .as_str()
-            .filter(|text| crate::dates::parse(text).is_some())
+            .filter(|text| crate::dates::parse_with_time(text).is_some())
         {
             Some(text.to_owned())
         } else {
-            check.problem("checked", "must be an existing date written YYYY-MM-DD");
+            check.problem(
+                "checked",
+                "must be an existing date written YYYY-MM-DD, or a date and time written \
+                 YYYY-MM-DD HH:MM",
+            );
             None
         }
     });
@@ -341,6 +460,67 @@ pub(crate) fn process(text: &str) -> Parsed<Process> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    fn lines<T>(parsed: &Parsed<T>) -> Vec<String> {
+        parsed.problems.iter().map(ToString::to_string).collect()
+    }
+
+    #[test]
+    fn empty_values_are_absent_and_the_file_stays_readable() {
+        let parsed = process(
+            "\u{feff}name: Refund\ndescription: Refunds an order.\ngroup:\ntry: \"\"\nwhy:\nchecked:\ncolour:\noutcomes:\n  refunded:\n  200:\n    when: paid\n    then: refunded\nfiles:\n  - path: src/refund.rs\n    note:\n",
+        );
+        assert!(parsed.problems.is_empty(), "{:?}", parsed.problems);
+        let process = parsed.value.unwrap();
+        assert_eq!(process.group, None);
+        assert_eq!(process.try_text, None);
+        assert!(process.why.is_empty());
+        let names: Vec<_> = process
+            .outcomes
+            .iter()
+            .map(|(name, _)| name.as_str())
+            .collect();
+        assert_eq!(names, ["200"]);
+        assert_eq!(process.files[0].value.note, None);
+        let parsed = super::process("name: \"\"\ndescription: Refunds an order.\n");
+        assert_eq!(lines(&parsed), ["name: is required"]);
+    }
+
+    #[test]
+    fn commands_environments_and_repeated_keys_are_findings_the_file_is_read_with() {
+        let parsed = project(
+            "name: Ledger\noperations:\n  setup: |\n    make setup\n  deploy:\n  release:\n    command:\n  ci: |\n    bundle install\n    bin/test\n  1.0: make one\nenvironments:\n  8080: localhost:8080\n  staging:\nname: Ledgerline\n",
+        );
+        assert_eq!(
+            lines(&parsed),
+            [
+                "name: written twice, on lines 1 and 15; the value on line 15 is the one read",
+                "operations.deploy: has no command; write the command that runs it",
+                "operations.release: has no command; write the command that runs it",
+                "operations.ci: must be one line; put the steps in a script and name the script here",
+                "environments.staging: has no value; write where the environment runs",
+            ]
+        );
+        let project = parsed.readable().unwrap();
+        assert_eq!(project.name, "Ledgerline");
+        let operations: Vec<_> = project
+            .operations
+            .iter()
+            .map(|(name, operation)| (name.as_str(), operation.command.as_str()))
+            .collect();
+        assert_eq!(
+            operations,
+            [
+                ("setup", "make setup\n"),
+                ("ci", "bundle install\nbin/test\n"),
+                ("1.0", "make one")
+            ]
+        );
+        assert_eq!(
+            project.environments,
+            [("8080".to_owned(), "localhost:8080".to_owned())]
+        );
+    }
 
     #[test]
     fn yaml_12_strings_and_mapping_order_are_preserved() {
@@ -365,11 +545,12 @@ mod tests {
                 parsed
                     .problems
                     .iter()
-                    .any(|problem| problem.starts_with(key)),
+                    .any(|problem| problem.place == Place::Key(key.into())),
                 "{key}: {:?}",
                 parsed.problems
             );
         }
+        assert!(parsed.readable().is_none());
         let process = parsed.value.unwrap();
         assert_eq!(process.entrypoints[0].value.to_string(), "job ExportOrders");
         assert_eq!(process.files[0].value.path, "src/export.rs");
@@ -381,8 +562,7 @@ mod tests {
             "name: Prune\ndescription: Remove old plants.\nentrypoints:\n  - false\n  - job Prune\n  - unknown Prune\n  - job Prune\nfiles:\n  - 17\n  - src/prune.rs\n  - {}\n  - path: src/garden.rs\n",
         );
         assert!(
-            parsed
-                .problems
+            lines(&parsed)
                 .iter()
                 .any(|problem| { problem == "entrypoints.4: duplicate entrypoint job Prune" })
         );
@@ -398,7 +578,7 @@ mod tests {
         let parsed = process(
             "name: Check stock\ndescription: Check available stock.\ntry: |\n  First line.\n  Second line.\nwhy:\n  - >-\n    Keep inventory\n    accurate.\n",
         );
-        let process = parsed.valid().unwrap();
+        let process = parsed.readable().unwrap();
         assert_eq!(
             process.try_text.as_deref(),
             Some("First line.\nSecond line.\n")
@@ -408,7 +588,9 @@ mod tests {
 
     #[test]
     fn malformed_and_multiple_documents_are_rejected() {
-        assert!(process("name: [unfinished").value.is_none());
+        let unfinished = process("name: [unfinished");
+        assert!(unfinished.value.is_none());
+        assert_eq!(unfinished.problems[0].place, Place::File);
         assert!(project("name: One\n---\nname: Two\n").value.is_none());
         assert!(project("[one, two]").value.is_none());
     }
@@ -419,7 +601,7 @@ mod tests {
             "name: Inventory\nowner: someone\noperations:\n  export:\n    command: bin/export\n    environment: local\n",
         );
         assert_eq!(
-            project.problems,
+            lines(&project),
             [
                 "owner: unknown key",
                 "operations.export.environment: unknown key"
@@ -430,7 +612,7 @@ mod tests {
             "name: Export\ndescription: Export orders.\nretries: 3\nfiles:\n  - path: src/export.rs\n    purpose: Converts orders.\noutcomes:\n  ready:\n    when: processing finishes\n    then: download becomes available\n    because: a file was saved\n",
         );
         assert_eq!(
-            process.problems,
+            lines(&process),
             [
                 "retries: unknown key",
                 "files.1.purpose: unknown key",
@@ -440,17 +622,27 @@ mod tests {
     }
 
     #[test]
+    fn a_key_that_is_not_a_string_is_named_by_where_it_is_without_a_key_path() {
+        let parsed = project("name: Inventory\noperations:\n  [1, 2]: make\n");
+        assert_eq!(
+            lines(&parsed),
+            ["operations key: must be a one-line string"]
+        );
+        assert_eq!(parsed.problems[0].place, Place::File);
+    }
+
+    #[test]
     fn wrong_nested_shapes_name_their_paths_without_trailing_dots() {
         let project = project("name: Inventory\noperations:\n  export: []\n");
         assert_eq!(
-            project.problems,
+            lines(&project),
             ["operations.export: must be a command string or a map"]
         );
         let process = process(
             "name: Export\ndescription: Export orders.\nfiles: [17]\noutcomes:\n  ready: done\n",
         );
         assert_eq!(
-            process.problems,
+            lines(&process),
             [
                 "files.1: must be a path string or a map",
                 "outcomes.ready: must be a map"
@@ -472,22 +664,44 @@ mod tests {
             "庭".repeat(161)
         ));
         assert_eq!(
-            too_long.problems,
+            lines(&too_long),
             ["watch_out.1: must have at most 160 characters"]
         );
 
         let too_many = project(&format!("{at_limit}  - 17\n"));
         assert!(
-            too_many
-                .problems
+            lines(&too_many)
                 .iter()
                 .any(|problem| problem == "watch_out: must have at most 7 items")
         );
         assert!(
-            too_many
-                .problems
+            lines(&too_many)
                 .iter()
                 .any(|problem| problem.starts_with("watch_out.8:"))
         );
+    }
+
+    #[test]
+    fn values_over_a_limit_are_read_whole_and_a_wrong_shape_is_not() {
+        let long = "x".repeat(161);
+        let parsed = project(&format!(
+            "name: Inventory\nwatch_out:\n{}operations:\n  test:\n    command: make test\n    note: {long}\nenvironments:\n  staging: {long}\n",
+            "  - Careful.\n".repeat(8)
+        ));
+        assert_eq!(parsed.problems.len(), 3);
+        assert_eq!(parsed.reasons(), "");
+        let project_value = parsed.readable().unwrap();
+        assert_eq!(project_value.watch_out.len(), 8);
+        assert_eq!(
+            project_value.operations[0].1.note.as_deref(),
+            Some(long.as_str())
+        );
+        assert_eq!(project_value.environments[0].1, long);
+
+        let wrong_shape = project(&format!(
+            "name: Inventory\nwatch_out: Careful.\nenvironments:\n  staging: {long}\n"
+        ));
+        assert!(wrong_shape.readable().is_none());
+        assert_eq!(wrong_shape.reasons(), "watch_out: must be a list");
     }
 }

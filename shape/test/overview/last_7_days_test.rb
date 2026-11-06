@@ -21,4 +21,15 @@ class Last7DaysTest < AcceptanceTest
     refute_stdout "LAST 7 DAYS"
     refute_stdout "NEEDS ATTENTION"
   end
+
+  test "with ROOSTR_TODAY carrying a time, 2026-10-10 14:30, the last 7 days still start at 00:00 on 2026-10-03: a change committed then is in LAST 7 DAYS" do
+    workspace "atelier", git: true
+    edit_file "app/models/booking.rb"
+    commit "Hold the place while the payment is pending", on: "2026-10-03T00:00:00+00:00"
+
+    overview today: "2026-10-10 14:30"
+
+    assert_success
+    assert_stdout "LAST 7 DAYS"
+  end
 end

@@ -1,0 +1,6 @@
+name: Atelier
+stack: Rails 7, PostgreSQL
+description: Sells places on a pottery studio's workshops and reminds the people who booked.
+operations:
+  start: bin/dev
+stack: Rails 8, PostgreSQL, Solid Queue

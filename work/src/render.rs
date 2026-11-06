@@ -1,11 +1,14 @@
-use std::collections::{BTreeMap, BTreeSet, HashSet};
+use std::collections::{BTreeMap, HashSet};
 
-use unicode_width::{UnicodeWidthChar, UnicodeWidthStr};
+use unicode_width::UnicodeWidthStr;
 
+use crate::characters::{written, written_file_name, written_name};
+use crate::check::{Entrypoints, Report};
 use crate::entrypoints::Inventory;
 use crate::git::Changes;
 use crate::model::{Kind, Process, Project};
-use crate::repository::Repository;
+use crate::repository::{ENTRYPOINTS_FILE, Repository};
+use crate::scan::{Failure, SCAN_FILE};
 
 const WIDTH: usize = 80;
 
@@ -17,54 +20,107 @@ fn pad(text: &str, columns: usize) -> String {
     format!("{text}{}", " ".repeat(columns.saturating_sub(width(text))))
 }
 
-fn truncate(text: &str, columns: usize) -> String {
-    if width(text) <= columns {
-        return text.to_owned();
-    }
-    if columns <= 3 {
-        return ".".repeat(columns);
-    }
-    let mut result = String::new();
-    let mut used = 0;
-    for ch in text.chars() {
-        let size = ch.width().unwrap_or(0);
-        if used + size > columns - 3 {
-            break;
-        }
-        result.push(ch);
-        used += size;
-    }
-    result.push_str("...");
-    result
+/// The widest a column of names gets; a longer name stands alone on its line.
+const NAME_COLUMN: usize = 36;
+
+fn name_width<S: AsRef<str>>(names: impl Iterator<Item = S>) -> usize {
+    names
+        .map(|name| width(name.as_ref()))
+        .max()
+        .unwrap_or(0)
+        .min(NAME_COLUMN)
 }
 
-// Preserve explicit newlines, and split a long word when it cannot fit on an empty line.
+// Prose within `columns`, explicit newlines kept. Words are never broken: one longer than
+// the room starts a line of its own and runs past it. A no-break space joins words.
 fn wrap(text: &str, columns: usize) -> Vec<String> {
-    let columns = columns.max(2);
-    let mut result = Vec::new();
-    for source in text.lines() {
-        let mut line = String::new();
-        for word in source.split_whitespace() {
-            if !line.is_empty() && width(&line) + 1 + width(word) > columns {
-                result.push(std::mem::take(&mut line));
-            }
-            if !line.is_empty() {
-                line.push(' ');
-            }
-            let mut used = width(&line);
-            for ch in word.chars() {
-                let size = ch.width().unwrap_or(0);
-                if used + size > columns {
-                    result.push(std::mem::take(&mut line));
-                    used = 0;
-                }
-                line.push(ch);
-                used += size;
-            }
+    text.lines()
+        .flat_map(|source| {
+            let words = source
+                .split(|ch: char| ch.is_whitespace() && ch != NO_BREAK)
+                .filter(|word| !word.is_empty());
+            wrap_words(words, columns)
+        })
+        .collect()
+}
+
+const NO_BREAK: char = '\u{a0}';
+
+// Words that must stay on one line, such as a command to copy: joined by no-break spaces,
+// which `block` prints as spaces.
+fn unbroken(text: &str) -> String {
+    text.replace(' ', &NO_BREAK.to_string())
+}
+
+// Words laid out greedily within `columns`, each whole: a word may be a path with spaces.
+fn wrap_words<'a>(words: impl IntoIterator<Item = &'a str>, columns: usize) -> Vec<String> {
+    let mut lines = Vec::new();
+    let mut line = String::new();
+    for word in words {
+        if !line.is_empty() && width(&line) + 1 + width(word) > columns {
+            lines.push(std::mem::take(&mut line));
         }
-        result.push(line);
+        if !line.is_empty() {
+            line.push(' ');
+        }
+        line.push_str(word);
     }
-    result
+    lines.push(line);
+    lines
+}
+
+// Text kept as it is when it fits, such as counts spaced apart; wrapped when it does not.
+fn fitted(text: &str, columns: usize) -> Vec<String> {
+    if width(text) <= columns {
+        vec![text.to_owned()]
+    } else {
+        wrap(text, columns)
+    }
+}
+
+/// A row of a column of names: `name` at `indent`, padded to `name_width` and followed by
+/// `gap` spaces, then `rest`, whose lines start in that column. A name wider than the column
+/// stands alone on its line, whole, and `rest` starts on the next.
+fn row(indent: usize, name: &str, name_width: usize, gap: usize, rest: &[String]) -> String {
+    let margin = " ".repeat(indent + name_width + gap);
+    let mut rest = rest.iter();
+    let first = if width(name) <= name_width {
+        let value = rest.next().map_or("", String::as_str);
+        format!(
+            "{}{}{value}",
+            " ".repeat(indent),
+            pad(name, name_width + gap)
+        )
+    } else {
+        format!("{}{name}", " ".repeat(indent))
+    };
+    let mut lines = vec![first.trim_end().to_owned()];
+    lines.extend(rest.map(|line| {
+        if line.is_empty() {
+            String::new()
+        } else {
+            format!("{margin}{line}")
+        }
+    }));
+    lines.join("\n")
+}
+
+// A command is copied, not read: never wrapped. Of one of several lines, the first shows.
+fn command_line(command: &str) -> String {
+    match first_line(command) {
+        (first, true) => format!("{first} ..."),
+        (first, false) => first.to_owned(),
+    }
+}
+
+/// The first line of a command, and whether more lines follow it. A command written as a
+/// block ends with a newline, which is not one more line.
+pub(crate) fn first_line(command: &str) -> (&str, bool) {
+    let command = command.strip_suffix('\n').unwrap_or(command);
+    match command.split_once(['\n', '\r']) {
+        Some((first, _)) => (first, true),
+        None => (command, false),
+    }
 }
 
 fn paragraph(text: &str, indent: usize) -> String {
@@ -81,14 +137,21 @@ fn paragraph(text: &str, indent: usize) -> String {
         .join("\n")
 }
 
+// A heading that fits keeps its spacing, such as the three spaces between an id and a name.
+// The name on the right, a group, is printed whole.
 fn heading(left: &str, right: &str) -> String {
+    let whole_left = if width(left) <= WIDTH {
+        left.to_owned()
+    } else {
+        paragraph(left, 0)
+    };
     if right.is_empty() {
-        return paragraph(left, 0);
+        return whole_left;
     }
     if width(left) + 3 + width(right) <= WIDTH {
         return format!("{}{right}", pad(left, WIDTH - width(right)));
     }
-    format!("{}\n{}", paragraph(left, 0), paragraph(right, 0))
+    format!("{whole_left}\n{right}")
 }
 
 fn labeled(label: &str, value: &str, column: usize) -> String {
@@ -135,111 +198,147 @@ pub(crate) fn overview(
     repository: &Repository,
     changes: Option<&Changes>,
     changed_files: &[(String, String)],
+    git_unreadable: Option<&str>,
 ) -> String {
     let mut sections = Vec::new();
-    let mut title = heading(&project.name, project.stack.as_deref().unwrap_or_default());
+    let mut title = heading(
+        &written(&project.name),
+        &written(project.stack.as_deref().unwrap_or_default()),
+    );
     if let Some(description) = &project.description {
         if !description.is_empty() {
             title.push('\n');
-            title.push_str(&paragraph(description, 0));
+            title.push_str(&paragraph(&written(description), 0));
         }
     }
     sections.push(title);
     if !project.watch_out.is_empty() {
         let mut lines = vec!["WATCH OUT".to_owned()];
-        lines.extend(project.watch_out.iter().map(|text| labeled("-", text, 4)));
+        lines.extend(
+            project
+                .watch_out
+                .iter()
+                .map(|text| labeled("-", &written(text), 4)),
+        );
         sections.push(lines.join("\n"));
     }
     sections.push(functionality(repository));
     if !project.operations.is_empty() {
-        let label_width = project
-            .operations
-            .iter()
-            .map(|(name, _)| width(name))
-            .max()
-            .unwrap_or(0)
-            .min(32);
+        let label_width = name_width(
+            project
+                .operations
+                .iter()
+                .map(|(name, _)| written_name(name)),
+        );
         let column = 2 + label_width + 4;
         let mut lines = vec!["WORK WITH THIS PROJECT".to_owned()];
         for (name, operation) in &project.operations {
-            lines.push(table_line(name, &operation.command, label_width, 4));
+            lines.push(row(
+                2,
+                &written_name(name),
+                label_width,
+                4,
+                &[written(&command_line(&operation.command)).into_owned()],
+            ));
             if let Some(note) = &operation.note {
                 if !note.is_empty() {
-                    lines.push(labeled("", note, column));
+                    lines.push(labeled("", &written(note), column));
                 }
             }
         }
         sections.push(lines.join("\n"));
     }
     if !project.environments.is_empty() {
-        let label_width = project
-            .environments
-            .iter()
-            .map(|(name, _)| width(name))
-            .max()
-            .unwrap_or(0)
-            .min(32);
+        let label_width = name_width(
+            project
+                .environments
+                .iter()
+                .map(|(name, _)| written_name(name)),
+        );
         let column = 2 + label_width + 4;
         let mut lines = vec!["ENVIRONMENTS".to_owned()];
         for (name, destination) in &project.environments {
-            lines.push(labeled(&truncate(name, label_width), destination, column));
+            lines.push(row(
+                2,
+                &written_name(name),
+                label_width,
+                4,
+                &wrap(&written(destination), WIDTH - column),
+            ));
         }
         sections.push(lines.join("\n"));
     }
     if let Some(changes) = changes.filter(|changes| !changes.is_empty()) {
         sections.push(format!(
-            "LAST 7 DAYS\n{}\n  run roostr changes to see them",
-            table_line("", &changes.summary(), 0, 0)
+            "LAST 7 DAYS\n  {}\n  run roostr changes to see them",
+            changes.summary()
         ));
     }
-    if let Some(attention) = attention(repository, changed_files) {
+    if let Some(attention) = attention(repository, changed_files, git_unreadable) {
         sections.push(attention);
     }
     format!("{}\n", sections.join("\n\n"))
 }
 
-fn attention(repository: &Repository, changed_files: &[(String, String)]) -> Option<String> {
-    let attention_files: BTreeSet<_> = repository
-        .processes
-        .iter()
-        .filter(|record| !record.parsed.problems.is_empty())
-        .map(|record| record.file.as_str())
-        .chain(
-            repository
-                .inventory
-                .as_ref()
-                .filter(|inventory| !inventory.problems.is_empty())
-                .map(|_| crate::repository::ENTRYPOINTS_FILE),
-        )
-        .collect();
-    if attention_files.is_empty() && repository.problems.is_empty() && changed_files.is_empty() {
+// A line that names a file and then says something about it: the path is kept whole.
+fn about_file(file: &str, words: &str, indent: usize) -> String {
+    wrap_words(
+        std::iter::once(file).chain(words.split_whitespace()),
+        WIDTH - indent,
+    )
+    .into_iter()
+    .map(|line| format!("{}{line}", " ".repeat(indent)))
+    .collect::<Vec<_>>()
+    .join("\n")
+}
+
+// `git_unreadable` is why Git could not be read, when it could not.
+fn attention(
+    repository: &Repository,
+    changed_files: &[(String, String)],
+    git_unreadable: Option<&str>,
+) -> Option<String> {
+    let attention_files = repository.unreadable();
+    if attention_files.is_empty()
+        && repository.problems.is_empty()
+        && changed_files.is_empty()
+        && git_unreadable.is_none()
+    {
         return None;
     }
     let mut lines = vec!["NEEDS ATTENTION".to_owned()];
-    lines.extend(
-        attention_files
-            .iter()
-            .map(|file| paragraph(&format!("{file}: needs checking; run roostr validate"), 2)),
-    );
-    lines.extend(
-        repository
-            .problems
-            .iter()
-            .map(|problem| paragraph(&format!("{problem}; run roostr validate"), 2)),
-    );
-    let label_width = changed_files
-        .iter()
-        .map(|(id, _)| width(id))
-        .max()
-        .unwrap_or(0)
-        .min(36);
-    for (id, file) in changed_files {
-        lines.push(table_line(
-            id,
-            &format!("{file} changed since this record was updated"),
-            label_width,
-            3,
+    lines.extend(attention_files.iter().map(|file| {
+        about_file(
+            &format!("{}:", written_file_name(file)),
+            "needs checking; run roostr validate",
+            2,
+        )
+    }));
+    lines.extend(repository.problems.iter().map(|finding| {
+        about_file(
+            &format!("{}:", written_file_name(&finding.file)),
+            &format!("{}; run roostr validate", finding.problem),
+            2,
+        )
+    }));
+    if let Some(reason) = git_unreadable {
+        // Only Git's first line, as it wrote it: a path in it must stay whole.
+        lines.push("  Git could not be read, so changes to the code are not shown:".to_owned());
+        lines.push(format!(
+            "    {}",
+            written(reason.lines().next().unwrap_or_default().trim_end())
         ));
+    }
+    let label_width = name_width(changed_files.iter().map(|(id, _)| written_file_name(id)));
+    let column = 2 + label_width + 3;
+    for (id, file) in changed_files {
+        let file = written_name(file);
+        let rest = wrap_words(
+            std::iter::once(file.as_ref())
+                .chain("changed since this record was updated".split_whitespace()),
+            WIDTH - column,
+        );
+        lines.push(row(2, &written_file_name(id), label_width, 3, &rest));
     }
     Some(lines.join("\n"))
 }
@@ -249,21 +348,205 @@ pub(crate) fn changes(changes: &Changes) -> String {
     if let Some(entries) = &changes.entrypoints {
         if !entries.added.is_empty() || !entries.removed.is_empty() {
             let mut lines = vec!["ENTRYPOINTS".to_owned()];
-            lines.extend(entries.added.iter().map(|entry| labeled("+", entry, 4)));
-            lines.extend(entries.removed.iter().map(|entry| labeled("-", entry, 4)));
+            lines.extend(
+                entries
+                    .added
+                    .iter()
+                    .map(|entry| format!("  + {}", written_name(&entry.to_string()))),
+            );
+            lines.extend(
+                entries
+                    .removed
+                    .iter()
+                    .map(|entry| format!("  - {}", written_name(&entry.to_string()))),
+            );
             sections.push(lines.join("\n"));
         }
     }
     if !changes.processes.is_empty() {
         let mut lines = vec!["PROCESSES".to_owned()];
         for (id, subjects) in &changes.processes {
-            lines.push(paragraph(id, 2));
-            lines.extend(subjects.iter().map(|subject| paragraph(subject, 4)));
+            lines.push(paragraph(&written_file_name(id), 2));
+            lines.extend(
+                subjects
+                    .iter()
+                    .map(|subject| paragraph(&written(subject), 4)),
+            );
         }
         sections.push(lines.join("\n"));
     }
     sections.push(changes.summary());
     format!("{}\n", sections.join("\n\n"))
+}
+
+// Text shown as it was written, each line indented; never wrapped.
+fn literal(text: &str, indent: usize) -> Vec<String> {
+    text.lines()
+        .map(|line| {
+            let line = line.trim_end();
+            if line.is_empty() {
+                String::new()
+            } else {
+                format!("{}{line}", " ".repeat(indent))
+            }
+        })
+        .collect()
+}
+
+fn block(heading: &str, advice: &str, items: Vec<String>) -> String {
+    let mut lines = vec![
+        heading.to_owned(),
+        paragraph(advice, 2).replace(NO_BREAK, " "),
+    ];
+    lines.extend(items);
+    lines.join("\n")
+}
+
+pub(crate) fn check(report: &Report) -> String {
+    if report.is_empty() {
+        return "No problems found\n".to_owned();
+    }
+    let mut blocks = Vec::new();
+    if !report.not_staged.is_empty() {
+        blocks.push(block(
+            "NOT STAGED",
+            &format!(
+                "The commit would not hold these files as they are in the working tree, where \
+                 check judged them. Stage each with {}, or undo the change.",
+                unbroken("git add <path>")
+            ),
+            report
+                .not_staged
+                .iter()
+                .map(|file| format!("    {}", written_name(file)))
+                .collect(),
+        ));
+    }
+    if !report.validate.is_empty() {
+        blocks.push(block(
+            "VALIDATE",
+            "Correct each of these in the file it names. roostr validate lists the same \
+             problems.",
+            report
+                .validate
+                .iter()
+                .flat_map(|finding| literal(&finding.to_string(), 4))
+                .collect(),
+        ));
+    }
+    if let Some(entrypoints) = &report.entrypoints {
+        blocks.push(entrypoints_block(entrypoints));
+    }
+    if !report.processes.is_empty() {
+        let mut items = Vec::new();
+        for (id, files) in &report.processes {
+            items.push(format!("    {}", written_file_name(id)));
+            items.extend(
+                files
+                    .iter()
+                    .map(|file| format!("      {}", written_name(file))),
+            );
+        }
+        blocks.push(block(
+            "PROCESSES",
+            &format!(
+                "Each file below changed after the record of its process was last updated. \
+                 Update .roostr/processes/<id>.yml so that it describes the code as it is now. \
+                 If the record still holds, write {} in it instead.",
+                unbroken(&format!("checked: {}", report.checked))
+            ),
+            items,
+        ));
+    }
+    if !report.not_described.is_empty() {
+        blocks.push(block(
+            "NOT DESCRIBED",
+            &format!(
+                "No process lists these entrypoints, though {} each was either new or listed by \
+                 a process. Add each to the entrypoints of the process it belongs to in \
+                 .roostr/processes/<id>.yml, or describe a new process for it. Where a process \
+                 listed it before, restore that record or its entry instead.",
+                if report.session.is_some() {
+                    "when the session started".to_owned()
+                } else {
+                    format!("at {}", written(report.base.as_deref().unwrap_or_default()))
+                }
+            ),
+            report
+                .not_described
+                .iter()
+                .map(|reference| format!("    {}", written_name(reference)))
+                .collect(),
+        ));
+    }
+    format!("{}\n", blocks.join("\n\n"))
+}
+
+fn entrypoints_block(entrypoints: &Entrypoints) -> String {
+    const UNKNOWN: &str = "check cannot tell whether .roostr/entrypoints.tsv is current";
+    const CORRECT: &str = "Correct the script until roostr scan succeeds.";
+    let (advice, mut items, stderr) = match entrypoints {
+        Entrypoints::Behind { added, removed } => (
+            format!(
+                "{ENTRYPOINTS_FILE} is not what {SCAN_FILE} finds in the code now. Run roostr \
+                 scan to update it."
+            ),
+            added
+                .iter()
+                .map(|reference| format!("    + {}", written_name(reference)))
+                .chain(
+                    removed
+                        .iter()
+                        .map(|reference| format!("    - {}", written_name(reference))),
+                )
+                .collect(),
+            None,
+        ),
+        Entrypoints::NeverScanned => (
+            format!(
+                "{ENTRYPOINTS_FILE} does not exist yet. Run roostr scan to write it from what \
+                 {SCAN_FILE} finds in the code."
+            ),
+            Vec::new(),
+            None,
+        ),
+        Entrypoints::Failed(failure) => match failure {
+            Failure::Missing(_) | Failure::NotExecutable | Failure::CannotStart { .. } => {
+                let reason = written(&failure.message()).into_owned();
+                let stop = if reason.ends_with('.') { "" } else { "." };
+                (
+                    format!("{reason}{stop} Until it runs, {UNKNOWN}."),
+                    Vec::new(),
+                    None,
+                )
+            }
+            Failure::Exited { reason, stderr, .. } => (
+                format!("{SCAN_FILE} {}, so {UNKNOWN}. {CORRECT}", written(reason)),
+                Vec::new(),
+                Some(stderr),
+            ),
+            Failure::Malformed { problems, stderr } => (
+                format!(
+                    "{SCAN_FILE} printed output that roostr scan refuses, so {UNKNOWN}. {CORRECT}"
+                ),
+                problems
+                    .iter()
+                    .flat_map(|problem| literal(&problem.to_string(), 4))
+                    .collect(),
+                Some(stderr),
+            ),
+        },
+    };
+    let stderr = stderr.map(|bytes| String::from_utf8_lossy(bytes).into_owned());
+    if let Some(stderr) = stderr.filter(|text| !text.trim().is_empty()) {
+        items.push(paragraph("It wrote this to stderr:", 2));
+        let mut lines = literal(&written(&stderr), 4);
+        while lines.last().is_some_and(String::is_empty) {
+            lines.pop();
+        }
+        items.extend(lines);
+    }
+    block("ENTRYPOINTS", &advice, items)
 }
 
 fn functionality(repository: &Repository) -> String {
@@ -302,18 +585,8 @@ fn functionality(repository: &Repository) -> String {
                 .or_default();
         }
     }
-    let group_width = groups
-        .keys()
-        .map(|group| width(group))
-        .max()
-        .unwrap_or(0)
-        .min(36);
-    let id_width = processes
-        .iter()
-        .map(|(id, _)| width(id))
-        .max()
-        .unwrap_or(0)
-        .min(36);
+    let group_width = name_width(groups.keys().map(|group| written_name(group)));
+    let id_width = name_width(processes.iter().map(|(id, _)| written_file_name(id)));
     let group_names: Vec<_> = groups
         .keys()
         .copied()
@@ -337,14 +610,16 @@ fn functionality(repository: &Repository) -> String {
                 }
             }
         }
+        let shown_group = written_name(group);
         if counts.is_empty() {
-            lines.push(format!("  {}", truncate(group, WIDTH - 2)));
+            lines.push(format!("  {shown_group}"));
         } else {
-            lines.push(table_line(group, &counts.join("   "), group_width, 3));
+            let counts = fitted(&counts.join("   "), WIDTH - (2 + group_width + 3));
+            lines.push(row(2, &shown_group, group_width, 3, &counts));
         }
         for (id, process) in &groups[group] {
-            let prefix = format!("    {}   ", pad(&truncate(id, id_width), id_width));
-            lines.push(wrapped_with_prefix(&prefix, &process.description));
+            let description = wrap(&written(&process.description), WIDTH - (4 + id_width + 3));
+            lines.push(row(4, &written_file_name(id), id_width, 3, &description));
         }
     }
     if let Some(inventory) = &repository.inventory {
@@ -374,15 +649,9 @@ fn functionality(repository: &Repository) -> String {
     lines.join("\n")
 }
 
-// Retain intentional spacing in short commands and note columns.
-fn table_line(label: &str, value: &str, label_width: usize, gap: usize) -> String {
-    let label = truncate(label, label_width);
-    let prefix = format!("  {}{}", pad(&label, label_width), " ".repeat(gap));
-    if width(&prefix) + width(value) <= WIDTH {
-        format!("{prefix}{value}")
-    } else {
-        labeled(&label, value, width(&prefix))
-    }
+// A label in the details column and a value printed whole: an entrypoint or a path.
+fn whole(label: &str, value: &str) -> String {
+    format!("{}{value}", pad(&format!("  {label}"), 11))
 }
 
 pub(crate) fn show(id: &str, process: &Process, inventory: Option<&Inventory>) -> String {
@@ -390,71 +659,67 @@ pub(crate) fn show(id: &str, process: &Process, inventory: Option<&Inventory>) -
     sections.push(format!(
         "{}\n{}",
         heading(
-            &format!("{id}   {}", process.name),
-            process.group.as_deref().unwrap_or_default()
+            &format!("{}   {}", written_file_name(id), written(&process.name)),
+            &written_name(process.group.as_deref().unwrap_or_default())
         ),
-        paragraph(&process.description, 0)
+        paragraph(&written(&process.description), 0)
     ));
     let mut details = Vec::new();
     for item in &process.entrypoints {
         let reference = &item.value;
-        details.push(labeled("entry", &reference.to_string(), 11));
+        details.push(whole("entry", &written_name(&reference.to_string())));
         let file = inventory
             .and_then(|inventory| inventory.find(reference))
-            .map(|entry| entry.file.as_str())
-            .unwrap_or("not in entrypoints.tsv");
-        details.push(labeled("", file, 11));
+            .map_or("not in entrypoints.tsv".into(), |entry| {
+                written_name(&entry.file)
+            });
+        details.push(whole("", &file));
     }
     let path_width = process
         .files
         .iter()
-        .map(|file| width(&file.value.path))
+        .map(|file| width(&written_name(&file.value.path)))
         .max()
         .unwrap_or(0)
         .min(40);
     for (index, item) in process.files.iter().enumerate() {
         let file = &item.value;
         let label = if index == 0 { "code" } else { "" };
+        let path = written_name(&file.path);
         if let Some(note) = &file.note {
+            let note = written(note);
             let prefix = pad(&format!("  {label}"), 11);
-            let path = pad(&file.path, path_width);
-            let line = format!("{prefix}{path}   {note}");
+            let line = format!("{prefix}{}   {note}", pad(&path, path_width));
             if width(&line) <= WIDTH {
                 details.push(line);
             } else {
-                details.push(labeled(label, &file.path, 11));
-                details.push(labeled("", note, 11));
+                details.push(whole(label, &path));
+                details.push(labeled("", &note, 11));
             }
         } else {
-            details.push(labeled(label, &file.path, 11));
+            details.push(whole(label, &path));
         }
     }
     if let Some(text) = &process.try_text {
         if !text.is_empty() {
-            details.push(literal_labeled("try", text, 11));
+            details.push(literal_labeled("try", &written(text), 11));
         }
     }
     if let Some(checked) = &process.checked {
-        details.push(labeled("checked", checked, 11));
+        details.push(labeled("checked", &written(checked), 11));
     }
     if !details.is_empty() {
         sections.push(details.join("\n"));
     }
     if !process.outcomes.is_empty() {
         let mut lines = vec!["OUTCOMES".to_owned()];
-        let label_width = process
-            .outcomes
-            .iter()
-            .map(|(name, _)| width(name))
-            .max()
-            .unwrap_or(0)
-            .min(32);
+        let label_width = name_width(process.outcomes.iter().map(|(name, _)| written_name(name)));
         for (name, outcome) in &process.outcomes {
-            lines.push(labeled(
-                &truncate(name, label_width),
-                &format!("{}: {}", outcome.when, outcome.then),
-                2 + label_width + 3,
-            ));
+            let text = wrap(
+                &format!("{}: {}", written(&outcome.when), written(&outcome.then)),
+                WIDTH - (2 + label_width + 3),
+            );
+            lines.push(row(2, &written_name(name), label_width, 3, &text));
         }
         sections.push(lines.join("\n"));
     }
@@ -464,7 +729,7 @@ pub(crate) fn show(id: &str, process: &Process, inventory: Option<&Inventory>) -
             process
                 .why
                 .iter()
-                .map(|text| paragraph(text, 2))
+                .map(|text| paragraph(&written(text), 2))
                 .collect::<Vec<_>>()
                 .join("\n\n")
         ));
@@ -477,33 +742,52 @@ mod tests {
     use super::*;
 
     #[test]
-    fn wide_characters_and_combining_accents_fit_the_columns() {
+    fn wide_characters_and_combining_accents_fit_the_columns_and_words_stay_whole() {
         let text = "庭園 café e\u{301} 新しい庭園";
+        let words: Vec<_> = text.split_whitespace().collect();
         for columns in 3..20 {
             let lines = wrap(text, columns);
-            assert!(lines.iter().all(|line| width(line) <= columns));
-            let content: String = lines
-                .concat()
-                .chars()
-                .filter(|ch| !ch.is_whitespace())
-                .collect();
-            let original: String = text.chars().filter(|ch| !ch.is_whitespace()).collect();
-            assert_eq!(content, original);
-            let shortened = truncate(text, columns);
-            assert!(width(&shortened) <= columns);
-            if width(text) > columns {
-                assert!(shortened.ends_with("..."));
-            }
+            // A line passes the edge only when it is one word that does not fit.
+            assert!(
+                lines
+                    .iter()
+                    .all(|line| width(line) <= columns || words.contains(&line.as_str()))
+            );
+            assert_eq!(lines.join(" "), words.join(" "));
         }
     }
 
     #[test]
-    fn long_words_are_wrapped_without_losing_text() {
-        let text = "a".repeat(241);
-        let lines = wrap(&text, 80);
-        assert_eq!(lines.len(), 4);
-        assert_eq!(lines.concat(), text);
-        assert!(lines.iter().all(|line| width(line) <= 80));
+    fn a_word_longer_than_the_line_stands_whole_on_a_line_of_its_own() {
+        let path = format!("src/{}.rs", "a".repeat(90));
+        let lines = wrap(&format!("see {path} for the rest"), 80);
+        assert_eq!(lines, ["see", path.as_str(), "for the rest"]);
+    }
+
+    #[test]
+    fn a_name_wider_than_its_column_stands_alone_and_the_rest_starts_in_the_column() {
+        let long = "n".repeat(40);
+        let rest = vec!["first".to_owned(), "second".to_owned()];
+        assert_eq!(
+            row(2, &long, 36, 3, &rest),
+            format!("  {long}\n{0}first\n{0}second", " ".repeat(41))
+        );
+        assert_eq!(
+            row(2, "short", 36, 3, &rest),
+            format!("  short{}first\n{}second", " ".repeat(34), " ".repeat(41))
+        );
+        assert_eq!(name_width(["a", "bb"].into_iter()), 2);
+        assert_eq!(name_width([long.as_str()].into_iter()), 36);
+    }
+
+    #[test]
+    fn a_command_of_several_lines_shows_its_first_and_a_block_of_one_its_line() {
+        assert_eq!(command_line("make setup\n"), "make setup");
+        assert_eq!(
+            command_line("bundle install\nbin/setup\n"),
+            "bundle install ..."
+        );
+        assert_eq!(command_line("make test"), "make test");
     }
 
     #[test]
@@ -512,7 +796,7 @@ mod tests {
         let parsed = crate::parse::process(&format!(
             "name: Export\ndescription: Export orders.\nfiles:\n  - path: {path}\n    note: Converts orders into records.\n"
         ));
-        let output = show("export", parsed.valid().unwrap(), None);
+        let output = show("export", parsed.readable().unwrap(), None);
         assert!(output.contains(path));
         assert!(output.contains("Converts orders into records."));
         assert!(output.lines().all(|line| width(line) <= 80));

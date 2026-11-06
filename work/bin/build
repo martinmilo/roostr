@@ -6,7 +6,9 @@ host=$(rustc -vV | sed -n 's/^host: //p')
 case "$host" in
     *-unknown-linux-gnu) target="${host%-gnu}-musl" ;;
     *-unknown-linux-musl) target="$host" ;;
-    *) echo "bin/build requires a Linux Rust toolchain with the musl target installed" >&2; exit 1 ;;
+    # macOS has no static libc: the binary is built for the host and links the system's.
+    *-apple-darwin) target="$host" ;;
+    *) echo "bin/build requires a Linux Rust toolchain with the musl target installed, or macOS" >&2; exit 1 ;;
 esac
 
 cargo build --offline --locked --release --target "$target"

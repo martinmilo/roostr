@@ -1,0 +1,82 @@
+name: Archive old workshops
+group: Workshops
+# A description of 6781 characters, written over 76 lines that YAML joins with a space: with
+# Atelier's three records the map is 8,001 bytes, one over the limit.
+description: Move every workshop that ended more than a year ago to the archive, with its bookings,
+  payments and reminder mails. The workshop list then shows only what is coming up and what
+  ended this year. Archived workshops keep their page, marked as archived, so that old links
+  from the newsletter still work. Refunds on an archived booking still go through, and the
+  accountant's export still lists them in their month. Trainers see their archived workshops
+  on a separate page, by year. Nothing is deleted; the archive can be searched by date,
+  trainer and attendee. Move every workshop that ended more than a year ago to the archive,
+  with its bookings, payments and reminder mails. The workshop list then shows only what is
+  coming up and what ended this year. Archived workshops keep their page, marked as archived,
+  so that old links from the newsletter still work. Refunds on an archived booking still go
+  through, and the accountant's export still lists them in their month. Trainers see their
+  archived workshops on a separate page, by year. Nothing is deleted; the archive can be
+  searched by date, trainer and attendee. Move every workshop that ended more than a year ago
+  to the archive, with its bookings, payments and reminder mails. The workshop list then shows
+  only what is coming up and what ended this year. Archived workshops keep their page, marked
+  as archived, so that old links from the newsletter still work. Refunds on an archived
+  booking still go through, and the accountant's export still lists them in their month.
+  Trainers see their archived workshops on a separate page, by year. Nothing is deleted; the
+  archive can be searched by date, trainer and attendee. Move every workshop that ended more
+  than a year ago to the archive, with its bookings, payments and reminder mails. The workshop
+  list then shows only what is coming up and what ended this year. Archived workshops keep
+  their page, marked as archived, so that old links from the newsletter still work. Refunds on
+  an archived booking still go through, and the accountant's export still lists them in their
+  month. Trainers see their archived workshops on a separate page, by year. Nothing is
+  deleted; the archive can be searched by date, trainer and attendee. Move every workshop that
+  ended more than a year ago to the archive, with its bookings, payments and reminder mails.
+  The workshop list then shows only what is coming up and what ended this year. Archived
+  workshops keep their page, marked as archived, so that old links from the newsletter still
+  work. Refunds on an archived booking still go through, and the accountant's export still
+  lists them in their month. Trainers see their archived workshops on a separate page, by
+  year. Nothing is deleted; the archive can be searched by date, trainer and attendee. Move
+  every workshop that ended more than a year ago to the archive, with its bookings, payments
+  and reminder mails. The workshop list then shows only what is coming up and what ended this
+  year. Archived workshops keep their page, marked as archived, so that old links from the
+  newsletter still work. Refunds on an archived booking still go through, and the accountant's
+  export still lists them in their month. Trainers see their archived workshops on a separate
+  page, by year. Nothing is deleted; the archive can be searched by date, trainer and
+  attendee. Move every workshop that ended more than a year ago to the archive, with its
+  bookings, payments and reminder mails. The workshop list then shows only what is coming up
+  and what ended this year. Archived workshops keep their page, marked as archived, so that
+  old links from the newsletter still work. Refunds on an archived booking still go through,
+  and the accountant's export still lists them in their month. Trainers see their archived
+  workshops on a separate page, by year. Nothing is deleted; the archive can be searched by
+  date, trainer and attendee. Move every workshop that ended more than a year ago to the
+  archive, with its bookings, payments and reminder mails. The workshop list then shows only
+  what is coming up and what ended this year. Archived workshops keep their page, marked as
+  archived, so that old links from the newsletter still work. Refunds on an archived booking
+  still go through, and the accountant's export still lists them in their month. Trainers see
+  their archived workshops on a separate page, by year. Nothing is deleted; the archive can be
+  searched by date, trainer and attendee. Move every workshop that ended more than a year ago
+  to the archive, with its bookings, payments and reminder mails. The workshop list then shows
+  only what is coming up and what ended this year. Archived workshops keep their page, marked
+  as archived, so that old links from the newsletter still work. Refunds on an archived
+  booking still go through, and the accountant's export still lists them in their month.
+  Trainers see their archived workshops on a separate page, by year. Nothing is deleted; the
+  archive can be searched by date, trainer and attendee. Move every workshop that ended more
+  than a year ago to the archive, with its bookings, payments and reminder mails. The workshop
+  list then shows only what is coming up and what ended this year. Archived workshops keep
+  their page, marked as archived, so that old links from the newsletter still work. Refunds on
+  an archived booking still go through, and the accountant's export still lists them in their
+  month. Trainers see their archived workshops on a separate page, by year. Nothing is
+  deleted; the archive can be searched by date, trainer and attendee. Move every workshop that
+  ended more than a year ago to the archive, with its bookings, payments and reminder mails.
+  The workshop list then shows only what is coming up and what ended this year. Archived
+  workshops keep their page, marked as archived, so that old links from the newsletter still
+  work. Refunds on an archived booking still go through, and the accountant's export still
+  lists them in their month. Trainers see their archived workshops on a separate page, by
+  year. Nothing is deleted; the archive can be searched by date, trainer and attendee. Move
+  every workshop that ended more than a year ago to the archive, with its bookings, payments
+  and reminder mails. The workshop list then shows only what is coming up and what ended this
+  year. Archived workshops keep their page, marked as archived, so that old links from the
+  newsletter still work. Refunds on an archived booking still go through, and the accountant's
+  export still lists them in their month. Trainers see their archived workshops on a separate
+  page, by year. Nothing is deleted; the archive can be searched by date, trainer and
+  attendee. The archive runs once a night, after the last workshop of the day has ended and
+  the entire studio has closed.
+files:
+  - app/controllers/workshops_controller.rb

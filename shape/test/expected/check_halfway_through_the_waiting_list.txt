@@ -1,0 +1,21 @@
+ENTRYPOINTS
+  .roostr/entrypoints.tsv is not what .roostr/scan finds in the code now. Run
+  roostr scan to update it.
+    - mail BookingMailer#reminder
+
+PROCESSES
+  Each file below changed after the record of its process was last updated.
+  Update .roostr/processes/<id>.yml so that it describes the code as it is now.
+  If the record still holds, write checked: 2026-10-10 in it instead.
+    book-workshop
+      app/models/booking.rb
+    cancel-booking
+      app/models/booking.rb
+
+NOT DESCRIBED
+  No process lists these entrypoints, though at HEAD each was either new or
+  listed by a process. Add each to the entrypoints of the process it belongs to
+  in .roostr/processes/<id>.yml, or describe a new process for it. Where a
+  process listed it before, restore that record or its entry instead.
+    http POST /waiting_list
+    job WaitingListJob

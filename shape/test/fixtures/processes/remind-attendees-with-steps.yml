@@ -1,0 +1,12 @@
+name: Remind attendees
+group: Notifications
+description: Remind attendees the day before a workshop
+entrypoints:
+  - job BookingReminderJob
+  - mail BookingMailer#reminder
+files:
+  - app/jobs/booking_reminder_job.rb
+try: In a console, run BookingReminderJob.perform_now with a booking for tomorrow.
+steps:
+  - Find the bookings for tomorrow
+  - Mail each attendee

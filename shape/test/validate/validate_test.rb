@@ -70,6 +70,14 @@ class ValidateTest < AcceptanceTest
     assert_stdout_lines 1
   end
 
+  test "the finding for a missing entrypoints.tsv starts, as every finding does, with the file it is about and a colon, as .roostr/entrypoints.tsv: followed by the message" do
+    delete_file ".roostr/entrypoints.tsv"
+
+    validate
+
+    assert_stdout(/\A\.roostr\/entrypoints\.tsv: \S/)
+  end
+
   test "an entrypoints.tsv row with an unknown kind is a finding" do
     write_file ".roostr/entrypoints.tsv", fixture("entrypoints/unknown-kind.tsv") # the Atelier rows plus one of kind webhook
 
@@ -319,5 +327,15 @@ class ValidateTest < AcceptanceTest
       assert_stdout "checked"
       assert_stdout "YYYY-MM-DD"
     end
+  end
+
+  test "a row of entrypoints.tsv out of byte order is a finding on its line: the rows are sorted by their whole line" do
+    write_file ".roostr/entrypoints.tsv", fixture("entrypoints/row-out-of-order.tsv") # Atelier's header and 7 rows, then http GET /gift_cards on line 9
+
+    validate
+
+    assert_exit 1
+    assert_stdout ".roostr/entrypoints.tsv: line 9: "
+    assert_stdout "sorted"
   end
 end

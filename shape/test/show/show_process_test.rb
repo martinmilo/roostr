@@ -11,12 +11,12 @@ class ShowProcessTest < AcceptanceTest
     refute_stdout "WHY"
   end
 
-  test "a process without a group has a heading of id and name only" do
+  test "a process without a group has a heading of id and name only, three spaces apart as in every other heading" do
     write_file ".roostr/processes/import-workshops.yml", fixture("processes/import-workshops.yml")
 
     show "import-workshops"
 
-    assert_stdout(/\Aimport-workshops\s+Import workshops from the studio calendar\n/)
+    assert_stdout(/\Aimport-workshops   Import workshops from the studio calendar\n/)
   end
 
   test "an entrypoint missing from entrypoints.tsv says so on the line where its file would be" do

@@ -1,0 +1,14 @@
+name: Show a booking
+group: Bookings
+description: Return one booking to the front desk app.
+entrypoints:
+  - http GET /bookings/:id
+files:
+  - app/controllers/bookings_controller.rb
+outcomes:
+  200:
+    when: the booking exists
+    then: its details are returned
+  404:
+    when: there is no booking with that id
+    then: nothing is returned

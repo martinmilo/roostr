@@ -1,0 +1,28 @@
+# What roostr shows about this project. Read it with `roostr`, check it with
+# `roostr validate`. Remove the "# " in front of a key to use it.
+name: pottery-studio
+
+# The stack, one line.
+# stack: Rails 8, PostgreSQL, Solid Queue
+
+# What the project is for, one sentence.
+# description: Sells mugs online and mails the receipts.
+
+# What someone must know before touching the project at all.
+# At most 7 items of at most 160 characters each.
+watch_out:
+#   - Payments run in test mode on staging; never use a real card there.
+
+# How to work with the project. A command, or a command with a note of at
+# most 160 characters.
+# operations:
+#   start: bin/dev
+#   test: bin/rails test
+#   deploy:
+#     command: bin/deploy
+#     note: asks for the production password
+
+# Where the project runs, one line of at most 160 characters each.
+# environments:
+#   staging: staging.example.com
+#   production: example.com

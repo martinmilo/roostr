@@ -1,0 +1,9 @@
+name: Billing Service
+stack: Java 21, Spring Boot 3, PostgreSQL
+description: Sends the invoices of small accounting firms and chases the ones that are overdue.
+operations:
+  start: ./gradlew bootRun
+  regenerate-the-api-client-from-the-openapi-specification: ./gradlew openApiGenerate --input src/main/resources/openapi.yaml --output build/generated/api-client
+environments:
+  staging-for-the-accounting-team-in-leeds: staging.billing.example.com (Fly.io)
+  production: billing.example.com (Fly.io)

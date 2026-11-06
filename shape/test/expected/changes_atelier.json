@@ -1,0 +1,22 @@
+{
+  "format": 1,
+  "since": "2026-10-03",
+  "entrypoints": {
+    "added": ["http POST /waiting_list", "job WaitingListJob"],
+    "removed": ["http GET /bookings/:id"]
+  },
+  "processes": [
+    {
+      "id": "book-workshop",
+      "subjects": ["Offer a freed place to the next person waiting", "Add the waiting list"]
+    },
+    {
+      "id": "cancel-booking",
+      "subjects": ["Offer a freed place to the next person waiting", "Add the waiting list"]
+    },
+    {
+      "id": "remind-attendees",
+      "subjects": ["Send the reminder two days ahead"]
+    }
+  ]
+}

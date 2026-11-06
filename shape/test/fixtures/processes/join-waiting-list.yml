@@ -1,0 +1,9 @@
+name: Join the waiting list
+group: Bookings
+description: Put someone on the waiting list of a full workshop and offer them a freed place.
+entrypoints:
+  - http POST /waiting_list
+  - job WaitingListJob
+files:
+  - app/controllers/waiting_list_controller.rb
+  - app/jobs/waiting_list_job.rb

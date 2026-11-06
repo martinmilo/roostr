@@ -1,0 +1,5 @@
+name: Atelier
+operations:
+  setup: |
+    bin/setup
+  start: bin/dev

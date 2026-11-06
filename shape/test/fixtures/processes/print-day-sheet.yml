@@ -1,0 +1,5 @@
+name: Print the day sheet
+group: Workshops
+description: 'Print the "day sheet" for the kiln room at C:\Studio, café included 🏺'
+files:
+  - app/controllers/workshops_controller.rb

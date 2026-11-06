@@ -1,0 +1,8 @@
+name: Refund a booking
+group: Bookings
+# Each escape below is a character that does not show: a soft hyphen, a zero-width space,
+# DEL, U+202E (right-to-left override), NEL (a C1 control), two tag characters, a byte order
+# mark, U+2066 (left-to-right isolate), ESC and BEL.
+description: "Re\u00ADfund\u200B a can\u007Fcelled\u202E boo\u0085king\U000E0049\U000E0047 to\uFEFF the ori\u2066ginal\e card\a"
+files:
+  - app/models/booking.rb

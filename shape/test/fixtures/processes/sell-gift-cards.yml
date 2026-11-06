@@ -1,0 +1,5 @@
+name: Sell a gift card
+group: Gift cards
+description: Take payment for a gift card and mail its code to the buyer.
+files:
+  - app/gift cards/café.rb

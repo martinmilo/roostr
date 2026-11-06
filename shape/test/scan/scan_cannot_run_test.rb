@@ -30,4 +30,17 @@ class ScanCannotRunTest < AcceptanceTest
     assert_stderr "roostr init"
     assert_nothing_written
   end
+
+  test "an executable scan script saved with Windows line endings cannot be started: scan exits 2, says its shebang line (#!) names an interpreter that cannot be started and that the file has Windows line endings, and writes nothing" do
+    workspace "atelier"
+    scan_prints fixture("scans/atelier.txt")
+    saved_with_windows_line_endings ".roostr/scan"
+
+    scan
+
+    assert_exit 2
+    assert_stderr "#!"
+    assert_stderr "Windows line endings"
+    assert_nothing_written
+  end
 end

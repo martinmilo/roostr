@@ -1,0 +1,6 @@
+name: Refund a booking
+group: Bookings
+# A tab, then U+2028 (line separator) and U+2029 (paragraph separator).
+description: "Refund\ta cancelled booking\u2028to the original card\u2029within five days."
+files:
+  - app/models/booking.rb

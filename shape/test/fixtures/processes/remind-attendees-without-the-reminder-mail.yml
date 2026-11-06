@@ -1,0 +1,8 @@
+name: Remind attendees
+group: Notifications
+description: Remind attendees the day before a workshop
+entrypoints:
+  - job BookingReminderJob
+files:
+  - app/jobs/booking_reminder_job.rb
+try: In a console, run BookingReminderJob.perform_now with a booking for tomorrow.

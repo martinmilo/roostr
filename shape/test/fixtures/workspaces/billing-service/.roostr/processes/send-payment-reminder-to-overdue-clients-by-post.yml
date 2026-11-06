@@ -1,0 +1,7 @@
+name: Send a payment reminder by post
+group: ReminderSchedulingAndDunningAdministration
+description: Print a letter for each overdue client who asked for paper, once a month.
+entrypoints:
+  - http POST /api/v1/organisations/{organisationId}/invoices/{invoiceId}/postal-reminders
+files:
+  - src/main/java/com/example/billing/reminders/PostalReminderController.java

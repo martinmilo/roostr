@@ -1,0 +1,6 @@
+# covers: http job mail
+http	DELETE /bookings/:id	app/controllers/bookings_controller.rb	Bookings
+http	GET /bookings/:id	app/controllers/bookings_controller.rb	Bookings
+http	GET /workshops	app/controllers/workshops_controller.rb	Workshops
+http	POST /bookings	app/controllers/bookings_controller.rb	Bookings
+mail	BookingMailer#confirmation	app/mailers/booking_mailer.rb

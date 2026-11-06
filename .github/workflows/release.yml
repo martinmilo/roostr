@@ -1,0 +1,105 @@
+# Runs when a tag v<version> is pushed. Builds roostr for Linux (static, x86_64 and arm64) and
+# macOS (Apple Silicon and Intel), runs every acceptance test against each binary on its own
+# kind of machine, and publishes a GitHub release: the four binaries, SHA256SUMS, and
+# releases/<version>.md as the notes. Nothing is published unless all four pass.
+# Each binary is named roostr-<uname -s, lower case>-<uname -m>, so one install line fits all.
+name: release
+on:
+  push:
+    tags: ['v*']
+permissions:
+  contents: read
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  prepare:
+    # The tag, the version in work/Cargo.toml and the release notes must agree.
+    runs-on: ubuntu-24.04
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v6
+      - id: version
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          set -eu
+          version=$(sed -n 's/^version = "\(.*\)"$/\1/p' work/Cargo.toml | head -n 1)
+          test "$TAG" = "v$version" || { echo "tag $TAG does not match work/Cargo.toml ($version)"; exit 1; }
+          test -s "releases/$version.md" || { echo "releases/$version.md is missing"; exit 1; }
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+  build:
+    # Native runners, so the acceptance tests run against the binary that ships.
+    needs: prepare
+    strategy:
+      matrix:
+        include:
+          - runner: ubuntu-24.04
+            target: x86_64-unknown-linux-musl
+            asset: roostr-linux-x86_64
+          - runner: ubuntu-24.04-arm
+            target: aarch64-unknown-linux-musl
+            asset: roostr-linux-aarch64
+          - runner: macos-15
+            target: aarch64-apple-darwin
+            asset: roostr-darwin-arm64
+          - runner: macos-15-intel
+            target: x86_64-apple-darwin
+            asset: roostr-darwin-x86_64
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: ruby
+      - name: Minitest
+        run: ruby -e 'require "minitest"' 2> /dev/null || gem install minitest
+      - name: Fetch the dependencies, since work/bin/build builds offline
+        working-directory: work
+        run: cargo fetch --locked
+      - name: Build, then run every acceptance test against the binary
+        run: work/bin/verify --all
+      - name: The binary is the tagged version
+        env:
+          VERSION: ${{ needs.prepare.outputs.version }}
+        run: test "$(work/bin/roostr --version)" = "roostr $VERSION"
+      - name: Name it for its platform
+        run: |
+          mkdir dist
+          cp work/bin/roostr "dist/${{ matrix.asset }}"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.target }}
+          path: dist/
+          if-no-files-found: error
+          retention-days: 1
+
+  publish:
+    needs: [prepare, build]
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+      - name: Checksums
+        working-directory: dist
+        run: sha256sum roostr-* > SHA256SUMS && cat SHA256SUMS
+      - name: Publish the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ needs.prepare.outputs.version }}
+        run: >-
+          gh release create "v$VERSION" dist/roostr-* dist/SHA256SUMS
+          --title "roostr $VERSION" --notes-file "releases/$VERSION.md" --verify-tag

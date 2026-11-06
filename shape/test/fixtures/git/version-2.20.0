@@ -1,0 +1,17 @@
+#!/bin/sh
+# answers git --version with git version 2.20.0, and fails everything else as a Git that old fails
+# an option it does not know: it exits 129 and names the option.
+for arg in "$@"; do
+  case "$arg" in --version|version) echo "git version 2.20.0"; exit 0 ;; esac
+done
+for arg in "$@"; do
+  case "$arg" in
+    -*)
+      name="${arg#-}"
+      echo "error: unknown option \`${name#-}'" >&2
+      echo "usage: git [<options>] <command> [<args>]" >&2
+      exit 129 ;;
+  esac
+done
+echo "usage: git [<options>] <command> [<args>]" >&2
+exit 129

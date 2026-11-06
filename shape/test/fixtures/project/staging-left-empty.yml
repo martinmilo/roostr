@@ -1,0 +1,4 @@
+name: Atelier
+environments:
+  staging:
+  production: atelier.example (Hetzner)

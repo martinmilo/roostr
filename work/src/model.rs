@@ -1,3 +1,5 @@
+use crate::characters::{written, written_file_name, written_name};
+
 #[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub(crate) enum Kind {
     Http,
@@ -110,26 +112,92 @@ pub(crate) struct Outcome {
     pub(crate) then: String,
 }
 
+/// Where in a file a finding is: the whole file, a key as a dotted path, or a line.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(crate) enum Place {
+    File,
+    Key(String),
+    Line(usize),
+}
+
+/// A problem with one file's content, without the file.
+#[derive(Clone, Debug)]
+pub(crate) struct Problem {
+    pub(crate) place: Place,
+    pub(crate) message: String,
+    /// Reported, but the file can still be read: a limit on length or count, a key written
+    /// twice, an operation with no command or one of several lines, an environment with no
+    /// value.
+    pub(crate) readable: bool,
+}
+
+impl Problem {
+    pub(crate) fn new(place: Place, message: impl Into<String>) -> Self {
+        Self {
+            place,
+            message: message.into(),
+            readable: false,
+        }
+    }
+}
+
+/// A problem as text output writes it: a key with what does not show written out, a tab and
+/// a line break among them (see `characters::written`).
+impl std::fmt::Display for Problem {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let message = written(&self.message);
+        match &self.place {
+            Place::File => write!(f, "{message}"),
+            Place::Key(key) => write!(f, "{}: {message}", written_name(key)),
+            Place::Line(line) => write!(f, "line {line}: {message}"),
+        }
+    }
+}
+
+/// A finding of `validate`: a problem and the file it is in.
+#[derive(Clone, Debug)]
+pub(crate) struct Finding {
+    pub(crate) file: String,
+    pub(crate) problem: Problem,
+}
+
+impl std::fmt::Display for Finding {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}: {}", written_file_name(&self.file), self.problem)
+    }
+}
+
 #[derive(Debug)]
 pub(crate) struct Parsed<T> {
     // Keep valid fields available to validation, even when another field is invalid.
     pub(crate) value: Option<T>,
-    pub(crate) problems: Vec<String>,
+    pub(crate) problems: Vec<Problem>,
 }
 
 impl<T> Parsed<T> {
-    pub(crate) fn failed(problem: String) -> Self {
+    pub(crate) fn failed(message: String) -> Self {
         Self {
             value: None,
-            problems: vec![problem],
+            problems: vec![Problem::new(Place::File, message)],
         }
     }
 
-    pub(crate) fn valid(&self) -> Option<&T> {
-        if self.problems.is_empty() {
+    /// The value, when no problem but a limit stands in the way of reading it.
+    pub(crate) fn readable(&self) -> Option<&T> {
+        if self.problems.iter().all(|problem| problem.readable) {
             self.value.as_ref()
         } else {
             None
         }
+    }
+
+    /// The problems that make the file unreadable, in their order.
+    pub(crate) fn reasons(&self) -> String {
+        self.problems
+            .iter()
+            .filter(|problem| !problem.readable)
+            .map(ToString::to_string)
+            .collect::<Vec<_>>()
+            .join("; ")
     }
 }

@@ -1,0 +1,7 @@
+name: Move a booking to another date
+# Book<U+200B>ings: a zero-width space inside the group's name, written as a YAML escape.
+group: "Book\U0000200Bings"
+description: Move a booking to a later workshop with a free place.
+files:
+  - app/models/booking.rb
+  - app/services/move_booking.rb

@@ -25,13 +25,21 @@ jobs:
       - run: work/bin/check
 
   verify:
-    # The acceptance tests in shape/, run against the static binary work/bin/build makes.
-    runs-on: ubuntu-24.04
+    # The acceptance tests in shape/, run against the binary work/bin/build makes: static on
+    # Linux, and on macOS as releases build it.
+    strategy:
+      matrix:
+        include:
+          - runner: ubuntu-24.04
+            target: x86_64-unknown-linux-musl
+          - runner: macos-15
+            target: aarch64-apple-darwin
+    runs-on: ${{ matrix.runner }}
     steps:
       - uses: actions/checkout@v6
       - uses: dtolnay/rust-toolchain@stable
         with:
-          targets: x86_64-unknown-linux-musl
+          targets: ${{ matrix.target }}
       - uses: ruby/setup-ruby@v1
         with:
           ruby-version: ruby

@@ -1,6 +1,6 @@
 use std::collections::{BTreeSet, HashSet};
 
-use crate::model::{EntrypointRef, Kind};
+use crate::model::{EntrypointRef, Kind, Place, Problem};
 
 #[derive(Debug)]
 pub(crate) struct Entrypoint {
@@ -13,12 +13,13 @@ pub(crate) struct Entrypoint {
 pub(crate) struct Inventory {
     pub(crate) covers: BTreeSet<Kind>,
     pub(crate) entries: Vec<Entrypoint>,
-    pub(crate) problems: Vec<String>,
+    pub(crate) problems: Vec<Problem>,
 }
 
 impl Inventory {
+    /// `entrypoints.tsv`, a byte order mark ignored.
     pub(crate) fn parse(text: &str) -> Self {
-        Self::parse_with_format(text, true)
+        Self::parse_with_format(text.strip_prefix('\u{feff}').unwrap_or(text), true)
     }
 
     pub(crate) fn parse_scan(text: &str) -> Self {
@@ -37,23 +38,19 @@ impl Inventory {
                 match Kind::parse(name) {
                     Some(kind) => {
                         if !inventory.covers.insert(kind) && canonical {
-                            inventory
-                                .problems
-                                .push(format!("line 1: covers: repeated kind {name}"));
+                            inventory.problem(1, format!("covers: repeated kind {name}"));
                         }
                     }
-                    None => inventory
-                        .problems
-                        .push(format!("line 1: covers: unknown kind {name:?}")),
+                    None => inventory.problem(1, format!("covers: unknown kind {name:?}")),
                 }
             }
         } else {
-            inventory
-                .problems
-                .push("line 1: expected '# covers: ' followed by scanned kinds".into());
+            inventory.problem(1, "expected '# covers: ' followed by scanned kinds");
         }
         if canonical && !text.ends_with('\n') {
-            inventory.problems.push("must end with a newline".into());
+            inventory
+                .problems
+                .push(Problem::new(Place::File, "must end with a newline"));
         }
         let mut previous = None;
         let mut reported_order = false;
@@ -64,47 +61,44 @@ impl Inventory {
                 && previous.is_some_and(|previous: &str| previous > line)
                 && !reported_order
             {
-                inventory.problems.push(format!(
-                    "line {line_number}: rows must be sorted in byte order"
-                ));
+                inventory.problem(line_number, "rows must be sorted in byte order");
                 reported_order = true;
             }
             previous = Some(line);
             let columns: Vec<&str> = line.split('\t').collect();
             let valid_column_count = (3..=4).contains(&columns.len());
             if !valid_column_count {
-                inventory.problems.push(format!(
-                    "line {line_number}: expected three or four tab-separated columns, got {}",
-                    columns.len()
-                ));
+                inventory.problem(
+                    line_number,
+                    format!(
+                        "expected three or four tab-separated columns, got {}",
+                        columns.len()
+                    ),
+                );
             }
             for (column, name) in columns.iter().zip(["kind", "name", "file"]) {
                 if column.is_empty() {
-                    inventory.problems.push(format!(
-                        "line {line_number}: {name} column must not be empty"
-                    ));
+                    inventory.problem(line_number, format!("{name} column must not be empty"));
                 }
             }
             if canonical && columns.get(3) == Some(&"") {
-                inventory.problems.push(format!(
-                    "line {line_number}: omit the empty area column and trailing tab"
-                ));
+                inventory.problem(line_number, "omit the empty area column and trailing tab");
             }
             if columns[0].is_empty() {
                 continue;
             }
             let Some(kind) = Kind::parse(columns[0]) else {
-                inventory.problems.push(format!(
-                    "line {line_number}: unknown entrypoint kind {:?}",
-                    columns[0]
-                ));
+                inventory.problem(
+                    line_number,
+                    format!("unknown entrypoint kind {:?}", columns[0]),
+                );
                 continue;
             };
             if !inventory.covers.contains(&kind) {
-                inventory.problems.push(format!(
-                    "line {line_number}: kind {} is not listed in covers",
-                    kind.as_str()
-                ));
+                inventory.problem(
+                    line_number,
+                    format!("kind {} is not listed in covers", kind.as_str()),
+                );
             }
             let Some(name) = columns.get(1).filter(|name| !name.is_empty()) else {
                 continue;
@@ -114,9 +108,7 @@ impl Inventory {
                 name: (*name).into(),
             };
             if !seen.insert(reference.clone()) {
-                inventory.problems.push(format!(
-                    "line {line_number}: duplicate entrypoint {reference}"
-                ));
+                inventory.problem(line_number, format!("duplicate entrypoint {reference}"));
             }
             if !valid_column_count || columns[2].is_empty() {
                 continue;
@@ -133,12 +125,26 @@ impl Inventory {
         inventory
     }
 
+    fn problem(&mut self, line: usize, message: impl Into<String>) {
+        self.problems.push(Problem::new(Place::Line(line), message));
+    }
+
     pub(crate) fn to_tsv(&self) -> String {
         let covers: Vec<_> = Kind::ALL
             .into_iter()
             .filter(|kind| self.covers.contains(kind))
             .map(Kind::as_str)
             .collect();
+        let mut text = format!("# covers: {}\n", covers.join(" "));
+        for (row, _) in self.sorted() {
+            text.push_str(&row);
+            text.push('\n');
+        }
+        text
+    }
+
+    // The entries in the order entrypoints.tsv keeps them: by their full row, byte order.
+    pub(crate) fn sorted(&self) -> Vec<(String, &Entrypoint)> {
         let mut rows: Vec<_> = self
             .entries
             .iter()
@@ -153,16 +159,22 @@ impl Inventory {
                     row.push('\t');
                     row.push_str(area);
                 }
-                row
+                (row, entry)
             })
             .collect();
-        rows.sort_unstable();
-        let mut text = format!("# covers: {}\n", covers.join(" "));
-        for row in rows {
-            text.push_str(&row);
-            text.push('\n');
-        }
-        text
+        rows.sort_unstable_by(|a, b| a.0.cmp(&b.0));
+        rows
+    }
+
+    /// The entrypoints `self` has and `other` lacks, in the file's order.
+    pub(crate) fn missing_from(&self, other: &Self) -> Vec<&EntrypointRef> {
+        let theirs: HashSet<_> = other.entries.iter().map(|entry| &entry.reference).collect();
+        let mut seen = HashSet::new();
+        self.sorted()
+            .into_iter()
+            .map(|(_, entry)| &entry.reference)
+            .filter(|reference| !theirs.contains(reference) && seen.insert(*reference))
+            .collect()
     }
 
     pub(crate) fn references(&self) -> BTreeSet<String> {
@@ -205,8 +217,9 @@ mod tests {
         );
         assert_eq!(inventory.entries.len(), 1);
         assert_eq!(inventory.problems.len(), 2);
-        assert!(inventory.problems[0].contains("line 3"));
-        assert!(inventory.problems[1].contains("unknown"));
+        assert_eq!(inventory.problems[0].place, Place::Line(3));
+        assert_eq!(inventory.problems[1].place, Place::Line(4));
+        assert!(inventory.problems[1].message.contains("unknown"));
     }
 
     #[test]
@@ -251,23 +264,22 @@ mod tests {
         let scanned = Inventory::parse_scan(
             "# covers: job\n\t\t\nunknown\tX\t\tarea\textra\njob\tPrune\njob\tPrune\tjobs/prune.rs\n",
         );
+        let problems: Vec<String> = scanned.problems.iter().map(ToString::to_string).collect();
         for column in ["kind", "name", "file"] {
             assert!(
-                scanned
-                    .problems
+                problems
                     .iter()
                     .any(|problem| { problem.starts_with("line 2:") && problem.contains(column) })
             );
         }
         for detail in ["columns", "unknown", "file"] {
             assert!(
-                scanned
-                    .problems
+                problems
                     .iter()
                     .any(|problem| { problem.starts_with("line 3:") && problem.contains(detail) })
             );
         }
-        assert!(scanned.problems.iter().any(|problem| {
+        assert!(problems.iter().any(|problem| {
             problem.starts_with("line 5:") && problem.contains("duplicate entrypoint job Prune")
         }));
     }

@@ -1,0 +1,77 @@
+roostr project map of Atelier, from .roostr/, kept by people and agents working here. Records can lag the code; where they differ, the code is current. `roostr show` with a process id prints a process in full: files, entrypoints, how to try it, outcomes. `roostr` prints the overview and recent changes.
+
+Stack: Rails 8, PostgreSQL, Solid Queue
+Description: Sells places on a pottery studio's workshops and reminds the people who booked.
+
+Watch out:
+- Shelf 01 holds glazes for the evening workshops only; ask the trainer before a morning class uses them.
+- Shelf 02 holds glazes for the evening workshops only; ask the trainer before a morning class uses them.
+- Shelf 03 holds glazes for the evening workshops only; ask the trainer before a morning class uses them.
+- Shelf 04 holds glazes for the evening workshops only; ask the trainer before a morning class uses them.
+- Shelf 05 holds glazes for the evening workshops only; ask the trainer before a morning class uses them.
+- Shelf 06 holds glazes for the evening workshops only; ask the trainer before a morning class uses them.
+- Shelf 07 holds glazes for the evening workshops only; ask the trainer before a morning class uses them.
+- Shelf 08 holds glazes for the evening workshops only; ask the trainer before a morning class uses them.
+- Shelf 09 holds glazes for the evening workshops only; ask the trainer before a morning class uses them.
+- Shelf 10 holds glazes for the evening workshops only; ask the trainer before a morning class uses them.
+- Shelf 11 holds glazes for the evening workshops only; ask the trainer before a morning class uses them.
+- Shelf 12 holds glazes for the evening workshops only; ask the trainer before a morning class uses them.
+- Shelf 13 holds glazes for the evening workshops only; ask the trainer before a morning class uses them.
+- Shelf 14 holds glazes for the evening workshops only; ask the trainer before a morning class uses them.
+- Shelf 15 holds glazes for the evening workshops only; ask the trainer before a morning class uses them.
+- Shelf 16 holds glazes for the evening workshops only; ask the trainer before a morning class uses them.
+- Shelf 17 holds glazes for the evening workshops only; ask the trainer before a morning class uses them.
+- Shelf 18 holds glazes for the evening workshops only; ask the trainer before a morning class uses them.
+- Shelf 19 holds glazes for the evening workshops only; ask the trainer before a morning class uses them.
+- Shelf 20 holds glazes for the evening workshops only; ask the trainer before a morning class uses them.
+- Shelf 21 holds glazes for the evening workshops only; ask the trainer before a morning class uses them.
+- Shelf 22 holds glazes for the evening workshops only; ask the trainer before a morning class uses them.
+- Shelf 23 holds glazes for the evening workshops only; ask the trainer before a morning class uses them.
+- Shelf 24 holds glazes for the evening workshops only; ask the trainer before a morning class uses them.
+- Shelf 25 holds glazes for the evening workshops only; ask the trainer before a morning class uses them.
+- Shelf 26 holds glazes for the evening workshops only; ask the trainer before a morning class uses them.
+- Shelf 27 holds glazes for the evening workshops only; ask the trainer before a morning class uses them.
+- Shelf 28 holds glazes for the evening workshops only; ask the trainer before a morning class uses them.
+- Shelf 29 holds glazes for the evening workshops only; ask the trainer before a morning class uses them.
+- Shelf 30 holds glazes for the evening workshops only; ask the trainer before a morning class uses them.
+- Shelf 31 holds glazes for the evening workshops only; ask the trainer before a morning class uses them.
+- Shelf 32 holds glazes for the evening workshops only; ask the trainer before a morning class uses them.
+- Shelf 33 holds glazes for the evening workshops only; ask the trainer before a morning class uses them.
+- Shelf 34 holds glazes for the evening workshops only; ask the trainer before a morning class uses them.
+- Shelf 35 holds glazes for the evening workshops only; ask the trainer before a morning class uses them.
+- Shelf 36 holds glazes for the evening workshops only; ask the trainer before a morning class uses them.
+- Shelf 37 holds glazes for the evening workshops only; ask the trainer before a morning class uses them.
+- Shelf 38 holds glazes for the evening workshops only; ask the trainer before a morning class uses them.
+- Shelf 39 holds glazes for the evening workshops only; ask the trainer before a morning class uses them.
+- Shelf 40 holds glazes for the evening workshops only; ask the trainer before a morning class uses them.
+- Shelf 41 holds glazes for the evening workshops only; ask the trainer before a morning class uses them.
+- Shelf 42 holds glazes for the evening workshops only; ask the trainer before a morning class uses them.
+- Shelf 43 holds glazes for the evening workshops only; ask the trainer before a morning class uses them.
+- Shelf 44 holds glazes for the evening workshops only; ask the trainer before a morning class uses them.
+- Shelf 45 holds glazes for the evening workshops only; ask the trainer before a morning class uses them.
+- Shelf 46 holds glazes for the evening workshops only; ask the trainer before a morning class uses them.
+- Shelf 47 holds glazes for the evening workshops only; ask the trainer before a morning class uses them.
+- Shelf 48 holds glazes for the evening workshops only; ask the trainer before a morning class uses them.
+- Shelf 49 holds glazes for the evening workshops only; ask the trainer before a morning class uses them.
+- Shelf 50 holds glazes for the evening workshops only; ask the trainer before a morning class uses them.
+- Shelf 51 holds glazes for the evening workshops only; ask the trainer before a morning class uses them.
+- Shelf 52 holds glazes for the evening workshops only; ask the trainer before a morning class uses them.
+- Shelf 53 holds glazes for the evening workshops only; ask the trainer before a morning class uses them.
+- Shelf 54 holds glazes for the evening workshops only; ask the trainer before a morning class uses them.
+- Shelf 55 holds glazes for the evening workshops only; ask the trainer before a morning class uses them.
+- Shelf 56 holds glazes for the evening workshops only; ask the trainer before a morning class uses them.
+- Shelf 57 holds glazes for the evening workshops only; ask the trainer before a morning class uses them.
+- Shelf 58 holds glazes for the evening workshops only; ask the trainer before a morning class uses them.
+- Shelf 59 holds glazes for the evening workshops only; ask the trainer before a morning class uses them.
+- Shelf 60 holds glazes for the evening workshops only; ask the trainer before a morning class uses them.
+- Shelf 61 holds glazes for the evening workshops only; ask the trainer before a morning class uses them.
+- Shelf 62 holds glazes for the evening workshops only; ask the trainer before a morning class uses them.
+- Shelf 63 holds glazes for the evening workshops only; ask the trainer before a morning class uses them.
+- Shelf 64 holds glazes for the evening workshops only; ask the trainer before a morning class uses them.
+- Shelf 65 holds glazes for the evening workshops only; ask the trainer before a morning class uses them.
+- Shelf 66 holds glazes for the evening workshops only; ask the trainer before a morning class uses them.
+- Shelf 67 holds glazes for the evening workshops only; ask the trainer before a morning class uses them.
+- Shelf 68 holds glazes for the evening workshops only; ask the trainer before a morning class uses them.
+- Shelf 69 holds glazes for the evening workshops only; ask the trainer before a morning class uses them.
+
+Left out to keep this map within 8,000 bytes: every process, every operation, and 11 of the 80 watch-out items. `roostr` prints the full overview.

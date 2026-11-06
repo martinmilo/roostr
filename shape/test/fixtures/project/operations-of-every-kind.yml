@@ -1,0 +1,16 @@
+name: Atelier
+operations:
+  setup: |
+    bin/setup
+    bin/rails db:seed
+  start: bin/dev
+  seed:
+    command: bin/rails db:seed
+    note: empties the bookings first
+  reset:
+  deploy:
+    command: bin/kamal deploy
+    note: asks for the production vault password
+environments:
+  staging: staging.atelier.example (Hetzner)
+  production: atelier.example (Hetzner)

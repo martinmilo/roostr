@@ -1,0 +1,5 @@
+name: File the quarterly VAT return
+group: QuarterlyReturnsAndAnnualStatementsForTheTaxAuthority
+description: Send the quarter's VAT figures to the tax authority's portal.
+files:
+  - src/main/java/com/example/billing/tax/VatReturnExporter.java

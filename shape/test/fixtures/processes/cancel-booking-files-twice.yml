@@ -1,0 +1,9 @@
+name: Cancel a booking
+group: Bookings
+description: Cancel a booking and free the place for the next person on the waiting list.
+files:
+  - app/models/booking.rb
+entrypoints:
+  - http DELETE /bookings/:id
+files:
+  - app/controllers/bookings_controller.rb

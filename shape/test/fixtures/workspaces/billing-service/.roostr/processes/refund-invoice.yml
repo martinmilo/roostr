@@ -1,0 +1,7 @@
+name: Refund an invoice
+group: Billing
+description: Refund an invoice to the card it was paid with.
+entrypoints:
+  - http POST /api/v1/invoices/{invoiceId}/refunds
+files:
+  - src/main/java/com/example/billing/refunds/RefundController.java

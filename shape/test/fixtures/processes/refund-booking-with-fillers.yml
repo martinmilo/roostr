@@ -1,0 +1,9 @@
+name: Refund a booking
+group: Bookings
+# Each escape below is a character that shows as nothing, outside Unicode's format
+# characters: the Hangul fillers U+3164, U+115F, U+1160 and U+FFA0, the Khmer vowels U+17B4
+# and U+17B5, U+034F (combining grapheme joiner) and U+180B (a Mongolian variation
+# selector). U+2800, the braille pattern blank, shows as a blank and stays.
+description: "Re\U00003164fund a\U00002800cancelled\U0000115F boo\U00001160king\U0000FFA0 to\U000017B4 the\U000017B5 ori\U0000034Fginal\U0000180B card"
+files:
+  - app/models/booking.rb

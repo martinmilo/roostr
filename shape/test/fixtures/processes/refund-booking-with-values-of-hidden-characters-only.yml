@@ -1,0 +1,8 @@
+name: Refund a booking
+# The group, the description and the first file are each a zero-width space (U+200B) and
+# nothing else, written as YAML escapes; the description has a soft hyphen (U+00AD) too.
+group: "\U0000200B"
+description: "\U0000200B\U000000AD"
+files:
+  - "\U0000200B"
+  - app/models/booking.rb

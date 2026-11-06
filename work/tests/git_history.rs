@@ -200,3 +200,140 @@ fn midnight_in_the_local_time_zone_is_inclusive() {
     assert!(output.contains("At local midnight"), "{output}");
     assert!(!output.contains("Before local midnight"), "{output}");
 }
+
+impl Project {
+    // `roostr check` with its exit code; findings make it exit 1, so success is not asserted.
+    fn check(&self, args: &[&str]) -> (i32, String) {
+        let output = Command::new(env!("CARGO_BIN_EXE_roostr"))
+            .current_dir(&self.directory)
+            .arg("check")
+            .args(args)
+            .env("ROOSTR_TODAY", "2026-10-10")
+            .env("TZ", "UTC")
+            .env("GIT_CONFIG_NOSYSTEM", "1")
+            .env("GIT_CONFIG_GLOBAL", "/dev/null")
+            .output()
+            .unwrap();
+        assert!(
+            output.stderr.is_empty(),
+            "{}",
+            String::from_utf8_lossy(&output.stderr)
+        );
+        (
+            output.status.code().unwrap(),
+            String::from_utf8(output.stdout).unwrap(),
+        )
+    }
+
+    // A main branch with the garden committed, and a feature branch started from it.
+    fn branched(&self) {
+        self.commit("Initial garden", "2026-09-01T00:00:00Z");
+        self.git(&["branch", "-M", "main"]);
+        self.git(&["checkout", "-q", "-b", "feature"]);
+    }
+}
+
+#[test]
+fn merging_main_into_a_branch_does_not_make_mains_changes_the_branchs_work() {
+    let project = Project::new("");
+    project.branched();
+    project.git(&["checkout", "-q", "main"]);
+    project.write("src/grow.rs", "changed on main\n");
+    project.commit("Grow faster", "2026-09-02T00:00:00Z");
+    project.git(&["checkout", "-q", "feature"]);
+    project.write("src/other.rs", "branch work\n");
+    project.commit("Branch work", "2026-09-03T00:00:00Z");
+    project.git(&["merge", "-q", "--no-edit", "main"]);
+    // The record is behind src/grow.rs, but main made that change, not the branch.
+    let (code, output) = project.check(&[]);
+    assert_eq!(code, 1, "{output}");
+    assert!(output.contains("    grow\n      src/grow.rs\n"), "{output}");
+    assert_eq!(
+        project.check(&["--base", "main"]),
+        (0, "No problems found\n".to_owned())
+    );
+}
+
+#[test]
+fn a_merge_that_resolves_a_conflict_in_a_listed_file_is_the_branchs_work() {
+    let project = Project::new("");
+    project.branched();
+    project.write("src/grow.rs", "branch version\n");
+    project.commit("Grow on the branch", "2026-09-02T00:00:00Z");
+    project.git(&["checkout", "-q", "main"]);
+    project.write("src/grow.rs", "main version\n");
+    project.commit("Grow on main", "2026-09-03T00:00:00Z");
+    project.git(&["checkout", "-q", "feature"]);
+    let merge = project
+        .git_command()
+        .args(["merge", "-q", "--no-edit", "main"])
+        .output()
+        .unwrap();
+    assert!(!merge.status.success(), "the merge should conflict");
+    project.write("src/grow.rs", "both versions\n");
+    project.commit("Merge main", "2026-09-04T00:00:00Z");
+    // Only the merge, which differs from both parents, touched src/grow.rs after main.
+    let (code, output) = project.check(&["--base", "main~0"]);
+    assert_eq!(code, 1, "{output}");
+    assert!(output.contains("    grow\n      src/grow.rs\n"), "{output}");
+}
+
+#[test]
+fn a_record_updated_on_a_branch_has_not_seen_a_change_main_made_meanwhile() {
+    let project = Project::new("");
+    project.branched();
+    project.write(
+        ".roostr/processes/grow.yml",
+        "name: Grow\ndescription: Grow a garden faster.\nfiles:\n  - src/grow.rs\n",
+    );
+    project.commit("Describe faster growing", "2026-09-02T00:00:00Z");
+    project.git(&["checkout", "-q", "main"]);
+    project.write("src/grow.rs", "changed on main\n");
+    project.commit("Grow faster", "2026-09-03T00:00:00Z");
+    project.git(&["merge", "-q", "--no-edit", "feature"]);
+    // The merge brings the record in unchanged from the branch, so it does not count as
+    // an update made after main's change.
+    let (code, output) = project.check(&[]);
+    assert_eq!(code, 1, "{output}");
+    assert!(output.contains("    grow\n      src/grow.rs\n"), "{output}");
+    let overview = project.roostr(&project.directory, &[], "UTC");
+    assert!(
+        overview.contains("src/grow.rs changed since this record was updated"),
+        "{overview}"
+    );
+}
+
+#[test]
+fn check_with_nothing_changed_runs_no_scan_and_never_writes_the_index() {
+    let project = Project::new("app");
+    let marker = project.root.join("scan-ran");
+    project.write(
+        ".roostr/scan",
+        &format!(
+            "#!/bin/sh\ntouch '{}'\nprintf '# covers: cli\\ncli\\tgrow\\tsrc/grow.rs\\n'\n",
+            marker.display()
+        ),
+    );
+    fs::set_permissions(
+        project.directory.join(".roostr/scan"),
+        fs::Permissions::from_mode(0o755),
+    )
+    .unwrap();
+    project.commit("Initial garden", "2026-09-01T00:00:00Z");
+    // A change outside the project folder is not the project's.
+    fs::write(project.root.join("README.md"), "elsewhere\n").unwrap();
+    // Make the index's stat data stale so a refreshing command would rewrite it.
+    project.write("src/grow.rs", "initial\n");
+    let index = fs::read(project.root.join(".git/index")).unwrap();
+    assert_eq!(
+        project.check(&["--base", "HEAD"]),
+        (0, "No problems found\n".to_owned())
+    );
+    assert!(!marker.exists());
+    project.write("src/grow.rs", "watered\n");
+    let (code, output) = project.check(&["--base", "HEAD"]);
+    assert_eq!(code, 1, "{output}");
+    assert!(output.contains("    grow\n      src/grow.rs\n"), "{output}");
+    assert!(marker.exists());
+    assert_eq!(index, fs::read(project.root.join(".git/index")).unwrap());
+}

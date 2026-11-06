@@ -1,0 +1,9 @@
+name: Cancel a booking
+group: Bookings
+description: Cancel a booking and free the place for the next person on the waiting list.
+entrypoints:
+  - http DELETE /bookings/:id
+  - http POST /waiting_list
+  - job WaitingListJob
+files:
+  - app/models/booking.rb
